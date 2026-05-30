@@ -35,15 +35,16 @@ export default function CycleDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/30"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
       onClick={onClose}
     >
       <div
-        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl max-h-[85vh] overflow-y-auto"
+        className="w-full bg-white rounded-t-2xl shadow-xl flex flex-col"
+        style={{ maxHeight: '85vh' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 标题 - 吸顶 */}
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 z-10">
+        {/* 标题 */}
+        <div className="flex-shrink-0 border-b border-gray-100 px-5 py-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-slate-700">
               🔁 排班周期设置
@@ -58,8 +59,8 @@ export default function CycleDialog({
           <p className="text-xs text-slate-400 mt-1">{personName}</p>
         </div>
 
-        {/* 操作按钮 - 顶部 */}
-        <div className="px-5 pt-3 pb-1">
+        {/* 操作按钮 */}
+        <div className="flex-shrink-0 px-5 pt-3 pb-2">
           <div className="flex gap-3">
             <button
               onClick={handleSave}
@@ -88,8 +89,8 @@ export default function CycleDialog({
           )}
         </div>
 
-        {/* 内容 */}
-        <div className="px-5 pb-3 space-y-3">
+        {/* 可滚动内容 */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 pb-4 space-y-3">
           {/* 周期天数 */}
           <div>
             <label className="text-xs font-medium text-slate-500 mb-2 block">
@@ -173,7 +174,6 @@ export default function CycleDialog({
               })}
             </div>
           </div>
-
         </div>
       </div>
     </div>
