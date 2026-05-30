@@ -5,29 +5,13 @@ const DB_NAME = 'scheduling-calendar'
 const DB_VERSION = 2
 
 /**
- * 获取当前数据库版本号（检测已有数据库的版本）
- */
-async function getCurrentDBVersion() {
-  try {
-    const db = await openDB(DB_NAME, undefined, { upgrade() {} })
-    const version = db.version
-    db.close()
-    return version
-  } catch {
-    return 0 // 数据库不存在
-  }
-}
-
-/**
  * 初始化 IndexedDB 数据库
  * 创建所有数据表和索引
+ *
+ * DB_VERSION=2 新增 cyclePatterns 表
  */
 export async function initDB() {
-  // 检测已有版本，避免用低版本打开高版本数据库导致崩溃
-  const currentVersion = await getCurrentDBVersion()
-  const targetVersion = Math.max(DB_VERSION, currentVersion)
-
-  const db = await openDB(DB_NAME, targetVersion, {
+  const db = await openDB(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion, newVersion, transaction) {
       // ----- persons 表 -----
       if (!db.objectStoreNames.contains('persons')) {
@@ -120,15 +104,12 @@ export async function getDB() {
 
 /**
  * 重置数据库（调试用）
- * 删除整个数据库后重新初始化（避免版本号冲突）
+ * 删除整个数据库后重新初始化
  */
 export async function resetDB() {
   _db = null
 
-  // 先关闭旧连接
-  await openDB(DB_NAME, DB_VERSION, { upgrade() {} }).then((db) => db.close())
-
-  // 删除整个数据库
+  // 强制关闭所有连接并删除数据库
   await new Promise((resolve, reject) => {
     const req = indexedDB.deleteDatabase(DB_NAME)
     req.onsuccess = resolve
@@ -136,6 +117,5 @@ export async function resetDB() {
     req.onblocked = () => reject(new Error('数据库被占用，请关闭其他标签页后重试'))
   })
 
-  // 重新初始化（此时 DB_VERSION=1 是最新的版本号）
   return initDB()
 }
