@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getAllShifts } from '../db/shiftStore'
 import { today } from '../utils/date'
-import ShiftBadge from './ShiftBadge'
 
 /**
  * 排班周期设置对话框
@@ -48,7 +47,7 @@ export default function CycleDialog({
       onClick={onClose}
     >
       <div
-        className="w-full bg-white rounded-t-2xl shadow-xl flex flex-col max-h-[85vh]"
+        className="relative w-full bg-white rounded-t-2xl shadow-xl max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 标题 - 固定顶部 */}
@@ -68,7 +67,7 @@ export default function CycleDialog({
         </div>
 
         {/* 可滚动内容区 */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+        <div className="overflow-y-auto px-5 py-3 space-y-3" style={{ maxHeight: '50vh' }}>
           {/* 周期天数 */}
           <div>
             <label className="text-xs font-medium text-slate-500 mb-2 block">
@@ -80,7 +79,6 @@ export default function CycleDialog({
                   key={n}
                   onClick={() => {
                     setCycleDays(n)
-                    // 切换天数时保留已有模式，新增的留空
                     if (pattern.length < n) {
                       const newPattern = [...pattern]
                       for (let i = pattern.length; i < n; i++) {
@@ -101,89 +99,64 @@ export default function CycleDialog({
             </div>
           </div>
 
-          {/* 周期模式列表 - 紧凑显示 */}
+          {/* 周期模式列表 */}
           <div>
             <p className="text-xs font-medium text-slate-500 mb-2">
-              点击格子选择班次，再点取消选择
+              点击选择班次，再点取消
             </p>
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {Array.from({ length: cycleDays }).map((_, i) => {
                 const entry = pattern[i] || { dayOffset: i, shiftId: '' }
-                const selectedShift = shifts.find((s) => s.id === entry.shiftId)
 
                 return (
                   <div
                     key={i}
-                    className="flex items-center gap-2 p-2 rounded-lg bg-gray-50"
+                    className="flex items-center gap-2 p-1.5 rounded-lg bg-gray-50"
                   >
-                    <span className="text-xs font-bold text-slate-500 w-12 flex-shrink-0 text-center">
-                      第{i + 1}天
+                    <span className="text-xs font-bold text-slate-500 w-10 flex-shrink-0 text-center">
+                      D{i + 1}
                     </span>
                     <div className="flex-1 flex gap-1 overflow-x-auto">
-                      {shifts.map((shift) => (
-                        <button
-                          key={shift.id}
-                          onClick={() => {
-                            const newPattern = [...pattern]
-                            newPattern[i] = {
-                              dayOffset: i,
-                              shiftId:
-                                entry.shiftId === shift.id ? '' : shift.id,
-                            }
-                            setPattern(newPattern)
-                          }}
-                          className={`px-2 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
-                            entry.shiftId === shift.id
-                              ? 'ring-2 ring-primary-500 scale-105 text-white'
-                              : 'bg-white border border-gray-200 text-slate-500'
-                          }`}
-                          style={
-                            entry.shiftId === shift.id
-                              ? { backgroundColor: shift.color }
-                              : {}
-                          }
-                        >
-                          {shift.icon} {shift.shortName || shift.name}
-                        </button>
-                      ))}
+                      {shifts.map((shift) => {
+                        const isSelected = entry.shiftId === shift.id
+                        return isSelected ? (
+                          <button
+                            key={shift.id}
+                            onClick={() => {
+                              const newPattern = [...pattern]
+                              newPattern[i] = { dayOffset: i, shiftId: '' }
+                              setPattern(newPattern)
+                            }}
+                            className="inline-flex items-center gap-0.5 px-2 py-1 rounded-lg text-xs font-medium text-white active:opacity-80"
+                            style={{ backgroundColor: shift.color }}
+                          >
+                            {shift.icon}{shift.shortName || shift.name} ✕
+                          </button>
+                        ) : (
+                          <button
+                            key={shift.id}
+                            onClick={() => {
+                              const newPattern = [...pattern]
+                              newPattern[i] = { dayOffset: i, shiftId: shift.id }
+                              setPattern(newPattern)
+                            }}
+                            className="px-2 py-1 rounded-lg text-xs font-medium whitespace-nowrap bg-white border border-gray-200 text-slate-500 active:bg-gray-100"
+                          >
+                            {shift.icon} {shift.shortName || shift.name}
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
                 )
               })}
             </div>
           </div>
-
-          {/* 周期预览 */}
-          {hasSelection && (
-            <div className="p-3 rounded-xl bg-primary-50 border border-primary-100">
-              <p className="text-xs font-medium text-primary-700 mb-1">
-                周期预览
-              </p>
-              <div className="flex flex-wrap gap-1">
-                {Array.from({ length: cycleDays }).map((_, i) => {
-                  const entry = pattern[i]
-                  const shift = entry?.shiftId
-                    ? shifts.find((s) => s.id === entry.shiftId)
-                    : null
-                  return shift ? (
-                    <ShiftBadge key={i} shift={shift} size="sm" />
-                  ) : (
-                    <span
-                      key={i}
-                      className="text-xs px-2 py-0.5 rounded-full bg-white text-slate-300 border border-dashed border-slate-200"
-                    >
-                      第{i + 1}天
-                    </span>
-                  )
-                })}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* 操作按钮 - 固定底部 */}
-        <div className="flex-shrink-0 border-t border-gray-100 px-5 py-4 space-y-2">
-          <div className="flex gap-3">
+        <div className="flex-shrink-0 border-t border-gray-100 px-5 py-4 bg-white rounded-b-2xl">
+          <div className="flex gap-3 mb-2">
             <button
               onClick={handleSave}
               disabled={!hasSelection}
