@@ -76,6 +76,70 @@ export async function initDB() {
     },
   })
 
+  // 诊断：打印当前数据库包含哪些表
+  const existingStores = Array.from(db.objectStoreNames)
+  console.log('[DB] 数据库已打开, 版本:', db.version, '包含表:', existingStores.join(', '))
+
+  // 安全检查：如果升级后还没有 persons 表，说明升级没成功，需要强制重建
+  if (!existingStores.includes('persons')) {
+    console.warn('[DB] persons 表缺失！开始强制重建数据库...')
+    db.close()
+
+    // 关掉连接后等待 100ms 再删库
+    await new Promise((resolve) => setTimeout(resolve, 100))
+
+    await new Promise((resolve, reject) => {
+      const req = indexedDB.deleteDatabase(DB_NAME)
+      req.onsuccess = resolve
+      req.onerror = reject
+      req.onblocked = () => {
+        console.warn('[DB] 删库被阻塞，强制重试...')
+        // 再等一会儿重试
+        setTimeout(async () => {
+          try {
+            const req2 = indexedDB.deleteDatabase(DB_NAME)
+            req2.onsuccess = resolve
+            req2.onerror = reject
+          } catch { resolve() }
+        }, 1000)
+      }
+    })
+
+    // 不再递归，直接用新版本号打开（确保 upgrade 触发）
+    const newDb = await openDB(DB_NAME, DB_VERSION + 1, {
+      upgrade(db) {
+        // 全新创建所有表
+        const personStore = db.createObjectStore('persons', { keyPath: 'id' })
+        personStore.createIndex('name', 'name', { unique: false })
+        personStore.createIndex('isActive', 'isActive', { unique: false })
+        personStore.createIndex('order', 'order', { unique: false })
+
+        const shiftStore = db.createObjectStore('shiftTemplates', { keyPath: 'id' })
+        shiftStore.createIndex('name', 'name', { unique: false })
+        shiftStore.createIndex('isDefault', 'isDefault', { unique: false })
+
+        const recordStore = db.createObjectStore('scheduleRecords', { keyPath: 'id' })
+        recordStore.createIndex('personId', 'personId', { unique: false })
+        recordStore.createIndex('date', 'date', { unique: false })
+        recordStore.createIndex('shiftId', 'shiftId', { unique: false })
+        recordStore.createIndex('personId+date', ['personId', 'date'], { unique: true })
+        recordStore.createIndex('date+shiftId', ['date', 'shiftId'], { unique: false })
+
+        db.createObjectStore('schedules', { keyPath: 'id' }).createIndex('weekStart', 'weekStart', { unique: false })
+
+        const memoStore = db.createObjectStore('memos', { keyPath: 'id' })
+        memoStore.createIndex('date', 'date', { unique: false })
+        memoStore.createIndex('remindAt', 'remindAt', { unique: false })
+        memoStore.createIndex('isDone', 'isDone', { unique: false })
+
+        db.createObjectStore('cyclePatterns', { keyPath: 'personId' })
+      },
+    })
+
+    console.log('[DB] 数据库已强制重建, 版本:', newDb.version)
+    return newDb
+  }
+
   // 首次启动：初始化默认班次
   const shiftCount = await db.count('shiftTemplates')
   if (shiftCount === 0) {

@@ -24,10 +24,10 @@ export async function getMemosByDate(date) {
  */
 export async function getPendingReminders() {
   const db = await getDB()
-  const index = db.transaction('memos').store.index('isDone')
-  const all = await index.getAll(false)
+  const all = await db.getAll('memos')
+  // IndexedDB 不支持 boolean 作为索引键值，用 getAll + JS 过滤
   return all
-    .filter((m) => m.remindAt)
+    .filter((m) => !m.isDone && m.remindAt)
     .sort((a, b) => (a.remindAt < b.remindAt ? -1 : 1))
 }
 

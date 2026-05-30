@@ -26,9 +26,9 @@ export async function getAllPersons() {
  */
 export async function getActivePersons() {
   const db = await getDB()
-  const index = db.transaction('persons').store.index('isActive')
-  const all = await index.getAll(true)
-  return all.sort((a, b) => a.order - b.order)
+  const all = await db.getAll('persons')
+  // IndexedDB 不支持 boolean 作为索引键值，所以用 getAll + JS 过滤
+  return all.filter((p) => p.isActive).sort((a, b) => a.order - b.order)
 }
 
 /**

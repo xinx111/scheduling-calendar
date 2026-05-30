@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import * as personStore from '../db/personStore'
+import { showToast } from '../components/Toast'
 
 /**
  * 人员数据 Hook
@@ -20,6 +21,7 @@ export function usePersons() {
       setActivePersons(active)
     } catch (err) {
       console.error('加载人员数据失败:', err)
+      showToast('数据库加载失败: ' + err.message, 'error')
     } finally {
       setLoading(false)
     }
