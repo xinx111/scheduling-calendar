@@ -2,11 +2,15 @@ import { openDB } from 'idb'
 import { DEFAULT_SHIFTS } from '../constants'
 
 const DB_NAME = 'scheduling-calendar'
-const DB_VERSION = 2
+const DB_VERSION = 3
 
 /**
  * 初始化 IndexedDB 数据库
- * 创建所有数据表和索引
+ *
+ * v2 → v3 (2026-05-30): 修复部分用户数据库为空壳（版本2但无表）的问题。
+ *   升级时 `if (!contains(...))` 确保：
+ *   - 正常用户：表已存在 → 跳过创建 → 数据无损
+ *   - 空壳用户：表不存在 → 创建所有表
  */
 export async function initDB() {
   const db = await openDB(DB_NAME, DB_VERSION, {
@@ -48,10 +52,9 @@ export async function initDB() {
 
       // ----- schedules 表（排班表批次）-----
       if (!db.objectStoreNames.contains('schedules')) {
-        const scheduleStore = db.createObjectStore('schedules', {
+        db.createObjectStore('schedules', {
           keyPath: 'id',
-        })
-        scheduleStore.createIndex('weekStart', 'weekStart', { unique: false })
+        }).createIndex('weekStart', 'weekStart', { unique: false })
       }
 
       // ----- memos 表（备忘录）-----
@@ -73,23 +76,9 @@ export async function initDB() {
     },
   })
 
-  // 检查数据库是否完整，如果缺少 persons 表说明是空壳库
-  if (!db.objectStoreNames.contains('persons')) {
-    // 关掉当前连接，删掉空壳库，重新初始化
-    db.close()
-    await new Promise((resolve, reject) => {
-      const req = indexedDB.deleteDatabase(DB_NAME)
-      req.onsuccess = resolve
-      req.onerror = reject
-      req.onblocked = reject
-    })
-    return initDB() // 递归重试，这次会从零创建
-  }
-
   // 首次启动：初始化默认班次
   const shiftCount = await db.count('shiftTemplates')
   if (shiftCount === 0) {
-    // 用单独的读写事务写入默认班次
     const tx = db.transaction('shiftTemplates', 'readwrite')
     for (const shift of DEFAULT_SHIFTS) {
       await tx.store.put(shift)
@@ -114,25 +103,30 @@ export async function getDB() {
 
 /**
  * 重置数据库
- * 清空所有表的数据（不删表结构）
+ * 清空所有表的数据
  */
 export async function resetDB() {
   const db = await getDB()
 
-  // 清空每个表的数据
   const storeNames = Array.from(db.objectStoreNames)
   for (const name of storeNames) {
+    // 跳过 shiftTemplates，后面单独重置
+    if (name === 'shiftTemplates') continue
     const tx = db.transaction(name, 'readwrite')
     await tx.store.clear()
     await tx.done
   }
 
-  // 重新插入默认班次
+  // 重置班次（清空后插入默认）
   const shiftTx = db.transaction('shiftTemplates', 'readwrite')
-  for (const shift of DEFAULT_SHIFTS) {
-    await shiftTx.store.put(shift)
-  }
+  await shiftTx.store.clear()
   await shiftTx.done
+
+  const insertTx = db.transaction('shiftTemplates', 'readwrite')
+  for (const shift of DEFAULT_SHIFTS) {
+    await insertTx.store.put(shift)
+  }
+  await insertTx.done
 
   return db
 }
