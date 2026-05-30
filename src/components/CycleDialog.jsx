@@ -67,7 +67,7 @@ export default function CycleDialog({
         </div>
 
         {/* 可滚动内容区 */}
-        <div className="overflow-y-auto px-5 py-3 space-y-3" style={{ maxHeight: '50vh' }}>
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-3 space-y-3">
           {/* 周期天数 */}
           <div>
             <label className="text-xs font-medium text-slate-500 mb-2 block">
