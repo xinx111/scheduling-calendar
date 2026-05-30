@@ -3,11 +3,24 @@ import { usePersons } from '../hooks/usePersons'
 import { EXAMPLE_PERSONS } from '../constants'
 import { showToast } from '../components/Toast'
 
+const AVATAR_OPTIONS = [
+  '😀', '😎', '🤩', '😊', '🥰', '😺',
+  '🐱', '🐶', '🐼', '🦊', '🐰', '🐸',
+  '🌈', '⭐', '🔥', '💪', '🎯', '🎨',
+  '👨‍💻', '👩‍💻', '👨‍🔧', '👩‍🔧', '👨‍🏫', '👩‍🏫',
+  '👑', '🎸', '🏀', '⚽', '🚀', '🌊',
+]
+
 export default function PeoplePage() {
-  const { persons, loading, addPerson, deletePerson, toggleActive } =
+  const { persons, loading, addPerson, deletePerson, toggleActive, updatePerson } =
     usePersons()
   const [showAddForm, setShowAddForm] = useState(false)
   const [newName, setNewName] = useState('')
+
+  // 编辑状态
+  const [editPerson, setEditPerson] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [editAvatar, setEditAvatar] = useState('')
 
   const handleAdd = async () => {
     if (!newName.trim()) return
@@ -25,6 +38,26 @@ export default function PeoplePage() {
       }
     }
     showToast('已添加示例人员')
+  }
+
+  const handleEdit = (person) => {
+    setEditPerson(person)
+    setEditName(person.name)
+    setEditAvatar(person.avatar || person.name.charAt(0))
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editName.trim() || !editPerson) return
+    try {
+      await updatePerson(editPerson.id, {
+        name: editName.trim(),
+        avatar: editAvatar,
+      })
+      showToast(`已更新「${editName.trim()}」`)
+      setEditPerson(null)
+    } catch (err) {
+      showToast('更新失败: ' + err.message, 'error')
+    }
   }
 
   if (loading) {
@@ -117,6 +150,12 @@ export default function PeoplePage() {
               {/* 操作 */}
               <div className="flex gap-1">
                 <button
+                  onClick={() => handleEdit(person)}
+                  className="px-3 py-1 text-xs rounded-full bg-primary-50 text-primary-600"
+                >
+                  编辑
+                </button>
+                <button
                   onClick={() => toggleActive(person.id)}
                   className={`px-3 py-1 text-xs rounded-full ${
                     person.isActive
@@ -140,6 +179,113 @@ export default function PeoplePage() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 编辑弹窗 */}
+      {editPerson && (
+        <div
+          className="fixed inset-0 z-[100] flex items-end bg-black/30"
+          onClick={() => setEditPerson(null)}
+        >
+          <div
+            className="w-full bg-white rounded-t-2xl shadow-xl flex flex-col"
+            style={{ maxHeight: '80vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 标题 */}
+            <div className="flex-shrink-0 border-b border-gray-100 px-5 py-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-slate-700">
+                  ✏️ 编辑人员
+                </h3>
+                <button
+                  onClick={() => setEditPerson(null)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-slate-400"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-4">
+              {/* 当前头像预览 */}
+              <div className="flex flex-col items-center">
+                <span
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-2xl"
+                  style={{ backgroundColor: editPerson.color }}
+                >
+                  {editAvatar}
+                </span>
+                <p className="text-xs text-slate-400 mt-2">点击下方选择头像图标</p>
+              </div>
+
+              {/* 姓名 */}
+              <div>
+                <label className="text-xs font-medium text-slate-500 mb-1 block">
+                  姓名
+                </label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
+                  autoFocus
+                />
+              </div>
+
+              {/* 头像选择 */}
+              <div>
+                <label className="text-xs font-medium text-slate-500 mb-2 block">
+                  选择头像图标
+                </label>
+                <div className="grid grid-cols-6 gap-2">
+                  {AVATAR_OPTIONS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => setEditAvatar(emoji)}
+                      className={`w-full aspect-square rounded-xl flex items-center justify-center text-xl transition-all ${
+                        editAvatar === emoji
+                          ? 'bg-primary-100 ring-2 ring-primary-500 scale-105'
+                          : 'bg-gray-50 hover:bg-gray-100'
+                      }`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setEditAvatar(editPerson.name.charAt(0))}
+                  className={`mt-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                    editAvatar === editPerson.name.charAt(0)
+                      ? 'bg-primary-600 text-white'
+                      : 'bg-gray-100 text-slate-500'
+                  }`}
+                >
+                  使用文字首字「{editPerson.name.charAt(0)}」
+                </button>
+              </div>
+            </div>
+
+            {/* 操作按钮 */}
+            <div className="flex-shrink-0 border-t border-gray-100 px-5 py-4">
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSaveEdit}
+                  disabled={!editName.trim()}
+                  className="flex-1 btn-primary text-sm py-3 text-center disabled:opacity-50"
+                >
+                  ✓ 保存
+                </button>
+                <button
+                  onClick={() => setEditPerson(null)}
+                  className="btn-secondary text-sm py-3 flex-1 text-center"
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

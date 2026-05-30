@@ -62,10 +62,6 @@ export default function SettingsPage() {
   }
 
   const handleDeleteShift = async (shift) => {
-    if (shift.isDefault) {
-      showToast('预置班次不能删除', 'warning')
-      return
-    }
     if (!window.confirm(`确定删除班次「${shift.name}」？\n使用该班次的排班记录将被置空。`)) return
     try {
       await deleteShift(shift.id)
@@ -212,14 +208,12 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: shift.color }} />
-                {!shift.isDefault && (
-                  <button
-                    onClick={() => handleDeleteShift(shift)}
-                    className="text-xs text-red-400 hover:text-red-600 p-1 flex-shrink-0"
-                  >
-                    ✕
-                  </button>
-                )}
+                <button
+                  onClick={() => handleDeleteShift(shift)}
+                  className="text-xs text-red-400 hover:text-red-600 p-1 flex-shrink-0"
+                >
+                  ✕
+                </button>
               </div>
             ))}
           </div>
@@ -263,22 +257,6 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
-      </div>
-
-      {/* API 配置 */}
-      <div className="card">
-        <h3 className="text-sm font-bold text-slate-600 mb-3">
-          🔑 智谱 API 配置
-        </h3>
-        <p className="text-xs text-slate-400">
-          在项目根目录的 .env 文件中设置：
-        </p>
-        <code className="block mt-2 px-3 py-2 bg-gray-50 rounded-xl text-xs text-slate-600 font-mono">
-          VITE_ZHIPU_API_KEY=your_api_key_here
-        </code>
-        <p className="text-xs text-slate-400 mt-2">
-          获取 API Key：bigmodel.cn
-        </p>
       </div>
 
       {/* 关于 */}
