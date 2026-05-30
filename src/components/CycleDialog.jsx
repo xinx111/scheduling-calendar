@@ -35,12 +35,12 @@ export default function CycleDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/30"
+      className="fixed inset-0 z-[100] flex items-end justify-center bg-black/30"
       onClick={onClose}
     >
       <div
         className="w-full bg-white rounded-t-2xl shadow-xl flex flex-col"
-        style={{ maxHeight: '85vh' }}
+        style={{ maxHeight: '75vh' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 标题 */}

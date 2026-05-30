@@ -25,7 +25,7 @@ export default function ShiftPicker({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end bg-black/30"
+      className="fixed inset-0 z-[100] flex items-end bg-black/30"
       onClick={onClose}
     >
       <div
