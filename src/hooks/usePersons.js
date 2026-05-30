@@ -11,13 +11,18 @@ export function usePersons() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [all, active] = await Promise.all([
-      personStore.getAllPersons(),
-      personStore.getActivePersons(),
-    ])
-    setPersons(all)
-    setActivePersons(active)
-    setLoading(false)
+    try {
+      const [all, active] = await Promise.all([
+        personStore.getAllPersons(),
+        personStore.getActivePersons(),
+      ])
+      setPersons(all)
+      setActivePersons(active)
+    } catch (err) {
+      console.error('加载人员数据失败:', err)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
@@ -67,10 +72,16 @@ export function usePerson(id) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (!id) return
+    if (!id) {
+      setLoading(false)
+      return
+    }
     setLoading(true)
     personStore.getPerson(id).then((p) => {
       setPerson(p)
+      setLoading(false)
+    }).catch((err) => {
+      console.error('加载人员失败:', err)
       setLoading(false)
     })
   }, [id])

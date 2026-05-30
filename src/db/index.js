@@ -5,11 +5,29 @@ const DB_NAME = 'scheduling-calendar'
 const DB_VERSION = 1
 
 /**
+ * 获取当前数据库版本号（检测已有数据库的版本）
+ */
+async function getCurrentDBVersion() {
+  try {
+    const db = await openDB(DB_NAME, undefined, { upgrade() {} })
+    const version = db.version
+    db.close()
+    return version
+  } catch {
+    return 0 // 数据库不存在
+  }
+}
+
+/**
  * 初始化 IndexedDB 数据库
  * 创建所有数据表和索引
  */
 export async function initDB() {
-  const db = await openDB(DB_NAME, DB_VERSION, {
+  // 检测已有版本，避免用低版本打开高版本数据库导致崩溃
+  const currentVersion = await getCurrentDBVersion()
+  const targetVersion = Math.max(DB_VERSION, currentVersion)
+
+  const db = await openDB(DB_NAME, targetVersion, {
     upgrade(db, oldVersion, newVersion, transaction) {
       // ----- persons 表 -----
       if (!db.objectStoreNames.contains('persons')) {
