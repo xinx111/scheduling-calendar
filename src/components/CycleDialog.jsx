@@ -34,27 +34,18 @@ export default function CycleDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-black/30"
-      onClick={onClose}
-    >
-      <div
-        className="w-full bg-white rounded-t-2xl shadow-xl flex flex-col"
-        style={{ maxHeight: '75vh' }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="modal-backdrop animate-fade-in" onClick={onClose}>
+      <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl flex flex-col animate-slide-up"
+        style={{ maxHeight: '80vh' }} onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+          <div className="w-10 h-1 rounded-full bg-gray-300/60" />
+        </div>
         {/* 标题 */}
-        <div className="flex-shrink-0 border-b border-gray-100 px-5 py-4">
+        <div className="flex-shrink-0 border-b border-gray-100 px-5 py-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-slate-700">
-              🔁 排班周期设置
-            </h3>
-            <button
-              onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-slate-400"
-            >
-              ✕
-            </button>
+            <h3 className="text-base font-bold text-slate-700">🔁 排班周期</h3>
+            <button onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-slate-400 transition-colors">✕</button>
           </div>
           <p className="text-xs text-slate-400 mt-1">{personName}</p>
         </div>

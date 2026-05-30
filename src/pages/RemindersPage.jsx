@@ -12,7 +12,6 @@ export default function RemindersPage() {
 
   useEffect(() => {
     let mounted = true
-
     const load = async () => {
       const pending = await memoStore.getPendingReminders()
       if (!mounted) return
@@ -20,7 +19,6 @@ export default function RemindersPage() {
       setLoading(false)
     }
     load()
-
     const onMemoChanged = () => load()
     window.addEventListener('memo-changed', onMemoChanged)
     return () => {
@@ -45,92 +43,75 @@ export default function RemindersPage() {
 
   const handleRequestPermission = async () => {
     const granted = await requestPermission()
-    if (granted) {
-      showToast('通知权限已开启')
-    } else {
-      showToast('通知权限被拒绝，请在浏览器设置中开启', 'warning')
-    }
+    if (granted) showToast('通知权限已开启')
+    else showToast('通知权限被拒绝，请在浏览器设置中开启', 'warning')
   }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full" />
+        <div className="spinner" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5 animate-fade-in">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-slate-700">🔔 提醒列表</h2>
-        <span className="text-xs text-slate-400 bg-gray-100 px-2 py-1 rounded-full">
-          待提醒 {reminders.length}
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🔔</span>
+          <h2 className="text-lg font-bold text-slate-700">提醒列表</h2>
+        </div>
+        <span className="text-xs font-medium text-slate-500 bg-gray-100 px-3 py-1.5 rounded-full">
+          {reminders.length} 条待提醒
         </span>
       </div>
 
-      {/* 通知权限提示 */}
-      <div className="card bg-primary-50 border-primary-100">
-        <p className="text-xs text-primary-600">
-          如需接收弹窗提醒，请开启通知权限
-        </p>
-        <button
-          onClick={handleRequestPermission}
-          className="mt-2 text-xs text-primary-700 font-medium underline"
-        >
-          开启通知
-        </button>
+      {/* 通知权限 */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-primary-50 to-primary-50/40 border border-primary-100/60">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-medium text-primary-700">🔔 弹窗提醒</p>
+            <p className="text-[11px] text-primary-500 mt-0.5">开启后可接收浏览器通知</p>
+          </div>
+          <button onClick={handleRequestPermission}
+            className="text-xs font-semibold text-white px-4 py-2 rounded-xl bg-primary-500 active:bg-primary-600 transition-colors shadow-sm">
+            开启通知
+          </button>
+        </div>
       </div>
 
-      {/* 提醒列表 */}
+      {/* 列表 */}
       {reminders.length === 0 ? (
-        <div className="card text-center py-8">
-          <div className="text-3xl mb-2">🔕</div>
-          <p className="text-sm text-slate-400">暂无待提醒事项</p>
-          <p className="text-xs text-slate-400 mt-1">
-            在日期详情页添加备注时可设置提醒
-          </p>
+        <div className="card text-center py-12">
+          <span className="text-4xl block mb-3">🔕</span>
+          <p className="text-sm text-slate-400 font-medium">暂无待提醒事项</p>
+          <p className="text-xs text-slate-400 mt-1.5">在排班时添加备注可设置提醒</p>
         </div>
       ) : (
         <div className="space-y-2">
           {reminders.map((reminder) => (
-            <div key={reminder.id} className="card flex items-start gap-3">
-              <div className="mt-0.5 text-lg">
+            <div key={reminder.id} className="card flex items-start gap-3 py-3.5">
+              <div className="mt-0.5 text-lg w-8 flex-shrink-0 text-center">
                 {reminder.isAlarm ? '⏰' : '🔔'}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-700">
-                  {reminder.content}
+                <p className="text-sm font-semibold text-slate-700">{reminder.content}</p>
+                <p className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
+                  <span>📅 {reminder.date}</span>
+                  {reminder.remindAt && (
+                    <span>· {new Date(reminder.remindAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
+                  )}
+                  {reminder.isAlarm && <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-50 text-amber-600 font-medium">闹钟</span>}
                 </p>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  📅 {reminder.date}
-                  {reminder.remindAt &&
-                    ` · ${new Date(reminder.remindAt).toLocaleTimeString('zh-CN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}`}
-                  {reminder.isAlarm && ' · ⏰ 闹钟'}
-                </p>
-                <button
-                  onClick={() => navigate(`/day/${reminder.date}`)}
-                  className="text-xs text-primary-600 mt-1"
-                >
-                  查看详情 →
-                </button>
+                <button onClick={() => navigate(`/day/${reminder.date}`)}
+                  className="text-xs font-medium text-primary-600 mt-1.5 hover:underline">查看详情 →</button>
               </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => handleMarkDone(reminder.id)}
-                  className="px-2 py-1 text-xs rounded-full bg-green-50 text-green-600"
-                >
-                  完成
-                </button>
-                <button
-                  onClick={() => handleDelete(reminder.id)}
-                  className="px-2 py-1 text-xs rounded-full bg-red-50 text-red-400"
-                >
-                  删除
-                </button>
+              <div className="flex gap-1.5 flex-shrink-0">
+                <button onClick={() => handleMarkDone(reminder.id)}
+                  className="px-3 py-1.5 text-xs font-medium rounded-xl bg-emerald-50 text-emerald-600 active:bg-emerald-100 transition-colors">完成</button>
+                <button onClick={() => handleDelete(reminder.id)}
+                  className="px-3 py-1.5 text-xs font-medium rounded-xl bg-rose-50 text-rose-400 active:bg-rose-100 transition-colors">删除</button>
               </div>
             </div>
           ))}

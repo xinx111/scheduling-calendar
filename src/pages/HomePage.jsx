@@ -192,36 +192,37 @@ export default function HomePage() {
   if (personsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full" />
+        <div className="spinner" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5 animate-fade-in">
       {/* 日历卡片 */}
-      <div className="card">
+      <div className="card overflow-hidden">
+        {/* 月份导航 + 人员 */}
         <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               onClick={calendar.goToPrevMonth}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 active:scale-90 transition-all"
+              className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 active:scale-90 transition-all text-slate-500 font-medium"
             >
-              ←
+              ‹
             </button>
-            <h2 className="text-base font-bold text-slate-700">
+            <h2 className="text-base font-bold text-slate-700 min-w-[100px] text-center">
               {calendar.title}
             </h2>
             <button
               onClick={calendar.goToNextMonth}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 active:scale-90 transition-all"
+              className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 active:scale-90 transition-all text-slate-500 font-medium"
             >
-              →
+              ›
             </button>
           </div>
           <button
             onClick={calendar.goToToday}
-            className="text-xs text-primary-600 font-medium px-3 py-1 rounded-full bg-primary-50 active:bg-primary-100"
+            className="text-xs font-semibold text-white px-3.5 py-1.5 rounded-full bg-gradient-to-r from-primary-500 to-primary-600 shadow-sm shadow-primary-200/40 active:scale-95 transition-all"
           >
             今天
           </button>
@@ -236,23 +237,16 @@ export default function HomePage() {
 
         {/* 周期指示条 */}
         {currentCycle && selectedPersonId && (
-          <div className="flex items-center justify-between mt-2 px-1">
-            <span className="text-xs text-amber-600">
-              🔁 已设置 {currentCycle.cycleDays} 天循环周期
-            </span>
-            <button
-              onClick={() => setCycleDialogOpen(true)}
-              className="text-xs text-primary-600 underline underline-offset-2"
-            >
-              编辑
-            </button>
+          <div className="flex items-center justify-between mt-2.5 px-1 py-1.5 bg-amber-50/60 rounded-xl border border-amber-200/40">
+            <span className="text-xs text-amber-700 font-medium">🔁 已设置 {currentCycle.cycleDays} 天循环</span>
+            <button onClick={() => setCycleDialogOpen(true)} className="text-xs font-medium text-primary-600 underline underline-offset-2">编辑</button>
           </div>
         )}
 
         {/* 日历 */}
         {dataLoading ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full" />
+          <div className="flex justify-center py-10">
+            <div className="spinner" />
           </div>
         ) : (
           <CalendarGrid
@@ -265,38 +259,44 @@ export default function HomePage() {
       </div>
 
       {/* 快捷操作 */}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2.5">
         {selectedPersonId && (
           <button
             onClick={() => setCycleDialogOpen(true)}
-            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all active:scale-95 ${
+            className={`px-4 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 flex-shrink-0 ${
               currentCycle
-                ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                : 'bg-white text-slate-600 border border-gray-200 hover:border-primary-300'
+                ? 'bg-amber-50 text-amber-700 border border-amber-200 shadow-sm'
+                : 'bg-white text-slate-600 border border-gray-200 shadow-sm hover:border-primary-300'
             }`}
           >
-            🔁 {currentCycle ? '编辑周期' : '设置排班周期'}
+            🔁 {currentCycle ? '编辑周期' : '周期排班'}
           </button>
         )}
         <button
           onClick={() => navigate('/upload')}
-          className="flex-1 btn-primary text-center"
+          className="flex-1 btn-primary text-center flex items-center justify-center gap-1.5 shadow-lg shadow-primary-200/30"
         >
-          📷 拍照识别
+          <span>📷</span>
+          <span>拍照识别</span>
         </button>
       </div>
 
-      {/* 操作提示 */}
+      {/* 本周概览 */}
       <div className="card">
-        <h3 className="text-sm font-bold text-slate-600 mb-2">
-          📋 当前周 ({weekRange.weekStart} ~ {weekRange.weekEnd})
-        </h3>
-        <ul className="text-xs text-slate-400 space-y-1">
-          <li>• 选中人员后点击日期即可手动排班</li>
-          <li>• 底部可设置排班周期，自动填充未来日期</li>
-          <li>• 点击「拍照识别」通过 AI 导入排班表</li>
-          <li>• 点击日期可查看该日全员排班详情</li>
-        </ul>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-sm">📋</span>
+          <h3 className="text-sm font-bold text-slate-600">本周 ({weekRange.weekStart} ~ {weekRange.weekEnd})</h3>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="text-center p-3 rounded-xl bg-primary-50/60">
+            <p className="text-lg font-bold text-primary-600">{activePersons.length}</p>
+            <p className="text-xs text-slate-400">排班人数</p>
+          </div>
+          <div className="text-center p-3 rounded-xl bg-emerald-50/60">
+            <p className="text-lg font-bold text-emerald-600">{currentCycle ? '✓' : '—'}</p>
+            <p className="text-xs text-slate-400">周期设置</p>
+          </div>
+        </div>
       </div>
 
       {/* 班次选择器弹出层 */}

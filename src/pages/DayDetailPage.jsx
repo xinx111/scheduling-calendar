@@ -70,7 +70,7 @@ export default function DayDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full" />
+        <div className="spinner" />
       </div>
     )
   }
@@ -80,42 +80,39 @@ export default function DayDetailPage() {
   const displayDate = `${parsedDate.getFullYear()}年${parsedDate.getMonth() + 1}月${parsedDate.getDate()}日`
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3.5 animate-fade-in">
       {/* 返回 + 标题 */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 active:scale-90"
-        >
-          ←
+      <div className="flex items-center gap-3 card !p-3">
+        <button onClick={() => navigate(-1)}
+          className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 active:scale-90 transition-all text-slate-500">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
         </button>
-        <div>
-          <h2 className="text-lg font-bold text-slate-700">{displayDate}</h2>
-          <span className="text-sm text-slate-400">周{dayOfWeek}</span>
+        <div className="flex items-center gap-2.5">
+          <div>
+            <h2 className="text-base font-bold text-slate-700">{displayDate}</h2>
+            <span className="text-xs text-slate-400">周{dayOfWeek}</span>
+          </div>
         </div>
       </div>
 
       {/* 排班信息 */}
       {dayInfo?.grouped && dayInfo.grouped.length > 0 ? (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {dayInfo.grouped.map((group) => (
             <div key={group.shift.id} className="card">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between mb-3">
                 <ShiftBadge shift={group.shift} size="lg" showTime />
+                <span className="text-xs text-slate-400 font-medium">{group.persons.length}人</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {group.persons.map((person) => (
-                  <span
-                    key={person.id}
-                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm bg-gray-50 border border-gray-100"
-                  >
-                    <span
-                      className="w-5 h-5 rounded-full flex items-center justify-center text-xs text-white font-bold"
-                      style={{ backgroundColor: person.color }}
-                    >
+                  <span key={person.id}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm bg-gray-50 border border-gray-100/80 shadow-sm">
+                    <span className="w-5 h-5 rounded-full flex items-center justify-center text-xs text-white font-bold"
+                      style={{ backgroundColor: person.color }}>
                       {person.avatar || person.name.charAt(0)}
                     </span>
-                    {person.name}
+                    <span className="font-medium text-slate-700">{person.name}</span>
                   </span>
                 ))}
               </div>
@@ -123,17 +120,20 @@ export default function DayDetailPage() {
           ))}
         </div>
       ) : (
-        <div className="card text-center py-8 text-slate-400">
-          <div className="text-3xl mb-2">📭</div>
-          <p className="text-sm">当天无排班信息</p>
-          <p className="text-xs mt-1">使用拍照识别或手动录入添加排班</p>
+        <div className="card text-center py-10">
+          <span className="text-4xl block mb-3">📭</span>
+          <p className="text-sm text-slate-400 font-medium">当天无排班信息</p>
+          <p className="text-xs text-slate-400 mt-1">点击日历可手动排班</p>
         </div>
       )}
 
       {/* 备注区域 */}
       <div className="card">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-slate-600">📝 备注与提醒</h3>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm">📝</span>
+            <h3 className="text-sm font-bold text-slate-600">备注与提醒</h3>
+          </div>
           <button
             onClick={() => setShowAddMemo(true)}
             className="text-xs text-primary-600 font-medium px-3 py-1 rounded-full bg-primary-50 active:bg-primary-100"

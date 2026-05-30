@@ -97,123 +97,92 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold text-slate-700">⚙️ 设置</h2>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-xl">⚙️</span>
+        <h2 className="text-lg font-bold text-slate-700">设置</h2>
+      </div>
 
       {/* 班次管理 */}
       <div className="card">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-slate-600">🏷️ 班次管理</h3>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🏷️</span>
+            <h3 className="text-sm font-bold text-slate-700">班次管理</h3>
+          </div>
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="text-xs text-primary-600 font-medium px-3 py-1 rounded-full bg-primary-50 active:bg-primary-100"
+            className="text-xs font-semibold text-primary-600 px-3.5 py-1.5 rounded-full bg-primary-50 active:bg-primary-100 transition-colors"
           >
-            ＋ 添加班次
+            ＋ 添加
           </button>
         </div>
 
         {/* 添加班次表单 */}
         {showAddForm && (
-          <div className="mb-4 p-3 rounded-xl bg-gray-50 space-y-3">
-            <input
-              type="text"
-              placeholder="班次名称（如：早晚班）"
-              value={newShift.name}
+          <div className="mb-4 p-4 rounded-2xl bg-gray-50/80 space-y-3 border border-gray-100/60 animate-fade-in">
+            <input type="text" placeholder="班次名称" value={newShift.name}
               onChange={(e) => setNewShift({ ...newShift, name: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
-              autoFocus
-            />
-            <input
-              type="text"
-              placeholder="简称（如：早）"
-              value={newShift.shortName}
+              className="input-field" autoFocus />
+            <input type="text" placeholder="简称（选填）" value={newShift.shortName}
               onChange={(e) => setNewShift({ ...newShift, shortName: e.target.value })}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
-            />
+              className="input-field" />
             <div className="flex gap-2">
               <div className="flex-1">
-                <label className="text-xs text-slate-400 block mb-1">开始时间</label>
-                <input
-                  type="time"
-                  value={newShift.startTime}
+                <label className="text-xs text-slate-400 block mb-1.5">开始</label>
+                <input type="time" value={newShift.startTime}
                   onChange={(e) => setNewShift({ ...newShift, startTime: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
-                />
+                  className="input-field" />
               </div>
               <div className="flex-1">
-                <label className="text-xs text-slate-400 block mb-1">结束时间</label>
-                <input
-                  type="time"
-                  value={newShift.endTime}
+                <label className="text-xs text-slate-400 block mb-1.5">结束</label>
+                <input type="time" value={newShift.endTime}
                   onChange={(e) => setNewShift({ ...newShift, endTime: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
-                />
+                  className="input-field" />
               </div>
             </div>
             <div>
-              <label className="text-xs text-slate-400 block mb-1">颜色</label>
-              <div className="flex gap-1.5 flex-wrap">
+              <label className="text-xs text-slate-400 block mb-1.5">颜色</label>
+              <div className="flex gap-2 flex-wrap">
                 {colorOptions.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setNewShift({ ...newShift, color: c })}
-                    className={`w-7 h-7 rounded-full transition-all ${
-                      newShift.color === c ? 'ring-2 ring-primary-500 scale-110' : ''
-                    }`}
-                    style={{ backgroundColor: c }}
-                  />
+                  <button key={c} onClick={() => setNewShift({ ...newShift, color: c })}
+                    className={`w-8 h-8 rounded-xl transition-all ${newShift.color === c ? 'ring-2 ring-primary-500 ring-offset-2 scale-110' : 'hover:scale-105'}`}
+                    style={{ backgroundColor: c }} />
                 ))}
               </div>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleAddShift}
-                disabled={!newShift.name.trim()}
-                className="flex-1 btn-primary text-sm py-2 text-center disabled:opacity-50"
-              >
-                保存班次
-              </button>
-              <button
-                onClick={() => setShowAddForm(false)}
-                className="btn-secondary text-sm py-2"
-              >
-                取消
-              </button>
+            <div className="flex gap-2 pt-1">
+              <button onClick={handleAddShift} disabled={!newShift.name.trim()}
+                className="flex-1 btn-primary text-sm py-2.5 text-center disabled:opacity-50">保存</button>
+              <button onClick={() => setShowAddForm(false)}
+                className="btn-secondary text-sm py-2.5 flex-1 text-center">取消</button>
             </div>
           </div>
         )}
 
         {loading ? (
-          <div className="flex justify-center py-4">
-            <div className="animate-spin w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full" />
-          </div>
+          <div className="flex justify-center py-6"><div className="spinner !w-6 !h-6" /></div>
         ) : shifts.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-4">暂无班次</p>
+          <p className="text-xs text-slate-400 text-center py-6">暂无班次，点击上方添加</p>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {shifts.map((shift) => (
-              <div
-                key={shift.id}
-                className="flex items-center gap-3 p-3 rounded-xl"
-                style={{ backgroundColor: hexToRgba(shift.color) }}
-              >
-                <span className="text-xl">{shift.icon}</span>
+              <div key={shift.id}
+                className="flex items-center gap-3 p-3.5 rounded-xl border border-transparent hover:border-gray-100 transition-colors"
+                style={{ backgroundColor: hexToRgba(shift.color) }}>
+                <span className="text-lg">{shift.icon}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-700">
+                  <p className="text-sm font-semibold text-slate-700">
                     {shift.name}
-                    {shift.shortName && <span className="text-xs text-slate-400 ml-1">({shift.shortName})</span>}
+                    {shift.shortName && <span className="text-xs text-slate-400 ml-1 font-normal">({shift.shortName})</span>}
                   </p>
                   <p className="text-xs text-slate-400">
-                    {shift.startTime ? `${shift.startTime} - ${shift.endTime}` : '全天'}
-                    {shift.isDefault ? ' · 预置' : ' · 自定义'}
+                    {shift.startTime ? `${shift.startTime}–${shift.endTime}` : '全天'}
+                    <span className="ml-1.5">{shift.isDefault ? '· 预置' : '· 自定义'}</span>
                   </p>
                 </div>
-                <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: shift.color }} />
-                <button
-                  onClick={() => handleDeleteShift(shift)}
-                  className="text-xs text-red-400 hover:text-red-600 p-1 flex-shrink-0"
-                >
-                  ✕
-                </button>
+                <span className="w-4 h-4 rounded-full flex-shrink-0 ring-1 ring-white/50" style={{ backgroundColor: shift.color }} />
+                <button onClick={() => handleDeleteShift(shift)}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg text-xs text-rose-400 hover:bg-rose-50 transition-colors flex-shrink-0">✕</button>
               </div>
             ))}
           </div>
@@ -222,50 +191,33 @@ export default function SettingsPage() {
 
       {/* 数据管理 */}
       <div className="card">
-        <h3 className="text-sm font-bold text-slate-600 mb-3">💾 数据管理</h3>
-        <p className="text-xs text-slate-400 mb-3">
-          所有数据存储在浏览器本地，清除浏览器缓存会导致数据丢失。
-        </p>
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={handleClearSchedules}
-            className="w-full py-3 rounded-xl text-sm font-medium bg-amber-50 text-amber-700 border border-amber-200 active:scale-95 transition-all text-center"
-          >
-            🗑️ 清除所有排班（保留人员、班次、备忘录）
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-lg">💾</span>
+          <h3 className="text-sm font-bold text-slate-700">数据管理</h3>
+        </div>
+        <p className="text-xs text-slate-400 mb-4">数据存储在浏览器本地，清除缓存会丢失。</p>
+        <div className="flex flex-col gap-2.5">
+          <button onClick={handleClearSchedules}
+            className="w-full py-3 rounded-2xl text-sm font-medium bg-amber-50 text-amber-700 border border-amber-200/60 active:scale-[0.98] transition-all shadow-sm">
+            🗑️ 清除排班数据（保留人员/班次/备忘录）
           </button>
-          <div className="flex gap-2">
-            <button
-              onClick={() => showToast('数据导出（待实现）')}
-              className="flex-1 btn-secondary text-sm py-2 text-center"
-            >
-              导出数据
-            </button>
-            <button
-              onClick={() => {
-                if (window.confirm('确定要清除所有数据？此操作不可恢复！')) {
-                  resetDB().then(() => {
-                    showToast('数据已重置')
-                    window.location.reload()
-                  }).catch((err) => {
-                    showToast('重置失败: ' + err.message, 'error')
-                  })
-                }
+          <div className="flex gap-2.5">
+            <button onClick={() => showToast('数据导出（待实现）')}
+              className="flex-1 py-3 rounded-2xl text-sm font-medium border border-gray-200 text-slate-500 bg-white active:scale-[0.98] transition-all">导出数据</button>
+            <button onClick={() => {
+                if (window.confirm('确定清除所有数据？此操作不可恢复！'))
+                  resetDB().then(() => { showToast('已重置'); window.location.reload() }).catch((e) => showToast('失败: ' + e.message, 'error'))
               }}
-              className="flex-1 bg-red-50 text-red-500 border border-red-200 px-4 py-2 rounded-xl text-sm font-medium active:scale-95 transition-all text-center"
-            >
-              清除所有数据
-            </button>
+              className="flex-1 py-3 rounded-2xl text-sm font-medium bg-rose-50 text-rose-600 border border-rose-200/60 active:scale-[0.98] transition-all">清除全部</button>
           </div>
         </div>
       </div>
 
       {/* 关于 */}
-      <div className="card text-center py-4">
-        <h3 className="text-sm font-bold text-slate-600">排班日历</h3>
-        <p className="text-xs text-slate-400 mt-1">v1.0.0</p>
-        <p className="text-xs text-slate-400 mt-0.5">
-          拍照识别 · 人员排班 · 日历来查看 · 闹钟提醒
-        </p>
+      <div className="card text-center py-5">
+        <span className="text-2xl mb-2 block">📅</span>
+        <h3 className="text-sm font-bold text-slate-700">排班日历</h3>
+        <p className="text-xs text-slate-400 mt-0.5">v1.0.0 · 简洁 · 高效</p>
       </div>
     </div>
   )

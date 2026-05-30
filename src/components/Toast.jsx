@@ -1,8 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 
-/**
- * Toast 提示组件
- */
 let toastId = 0
 
 export function showToast(message, type = 'success', duration = 2000) {
@@ -17,7 +14,10 @@ export default function ToastContainer() {
   const timersRef = useRef({})
 
   const addToast = useCallback((detail) => {
-    setToasts((prev) => [...prev, detail])
+    setToasts((prev) => [...prev, { ...detail, entering: true }])
+    setTimeout(() => {
+      setToasts((prev) => prev.map((t) => t.id === detail.id ? { ...t, entering: false } : t))
+    }, 50)
     const timerId = setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== detail.id))
       delete timersRef.current[detail.id]
@@ -30,7 +30,6 @@ export default function ToastContainer() {
     window.addEventListener('show-toast', handler)
     return () => {
       window.removeEventListener('show-toast', handler)
-      // 组件卸载时清理所有定时器
       Object.values(timersRef.current).forEach(clearTimeout)
       timersRef.current = {}
     }
@@ -39,24 +38,29 @@ export default function ToastContainer() {
   if (toasts.length === 0) return null
 
   return (
-    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] flex flex-col gap-2">
+    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[200] flex flex-col gap-2.5 pointer-events-none">
       {toasts.map((toast) => (
         <div
           key={toast.id}
           className={`
-            px-4 py-2 rounded-xl shadow-lg text-sm font-medium animate-fade-in
+            px-5 py-2.5 rounded-2xl shadow-lg text-sm font-medium pointer-events-auto
+            transition-all duration-300 ease-out
+            ${toast.entering !== false ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 -translate-y-4 scale-95'}
             ${
               toast.type === 'success'
-                ? 'bg-green-500 text-white'
+                ? 'bg-emerald-500 text-white shadow-emerald-200/40'
                 : toast.type === 'error'
-                ? 'bg-red-500 text-white'
+                ? 'bg-rose-500 text-white shadow-rose-200/40'
                 : toast.type === 'warning'
-                ? 'bg-amber-500 text-white'
-                : 'bg-slate-800 text-white'
+                ? 'bg-amber-500 text-white shadow-amber-200/40'
+                : 'bg-slate-800 text-white shadow-slate-200/40'
             }
           `}
         >
-          {toast.message}
+          <div className="flex items-center gap-2">
+            <span>{toast.type === 'success' ? '✓' : toast.type === 'error' ? '✕' : toast.type === 'warning' ? '⚠' : 'ℹ'}</span>
+            <span>{toast.message}</span>
+          </div>
         </div>
       ))}
     </div>
