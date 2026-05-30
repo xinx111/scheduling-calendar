@@ -4,13 +4,6 @@ import { today } from '../utils/date'
 
 /**
  * 排班周期设置对话框
- * @param {Object} props
- * @param {string} props.personId
- * @param {string} props.personName
- * @param {Object} props.existingPattern - 已有周期模式
- * @param {Function} props.onSave - 保存回调 (patternData)
- * @param {Function} props.onDelete - 删除回调
- * @param {Function} props.onClose - 关闭回调
  */
 export default function CycleDialog({
   personId,
@@ -31,7 +24,6 @@ export default function CycleDialog({
 
   const handleSave = () => {
     if (!hasSelection) return
-
     onSave({
       personId,
       cycleDays,
@@ -43,15 +35,15 @@ export default function CycleDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end bg-black/30"
+      className="fixed inset-0 z-50 bg-black/30"
       onClick={onClose}
     >
       <div
-        className="relative w-full bg-white rounded-t-2xl shadow-xl max-h-[90vh] flex flex-col"
+        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl max-h-[85vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 标题 - 固定顶部 */}
-        <div className="flex-shrink-0 border-b border-gray-100 px-5 py-4">
+        {/* 标题 - 吸顶 */}
+        <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 z-10">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-slate-700">
               🔁 排班周期设置
@@ -66,8 +58,8 @@ export default function CycleDialog({
           <p className="text-xs text-slate-400 mt-1">{personName}</p>
         </div>
 
-        {/* 可滚动内容区 */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-3 space-y-3">
+        {/* 内容 */}
+        <div className="px-5 py-3 space-y-3">
           {/* 周期天数 */}
           <div>
             <label className="text-xs font-medium text-slate-500 mb-2 block">
@@ -107,7 +99,6 @@ export default function CycleDialog({
             <div className="space-y-1">
               {Array.from({ length: cycleDays }).map((_, i) => {
                 const entry = pattern[i] || { dayOffset: i, shiftId: '' }
-
                 return (
                   <div
                     key={i}
@@ -152,10 +143,13 @@ export default function CycleDialog({
               })}
             </div>
           </div>
+
+          {/* 底部留白给按钮 */}
+          <div className="h-4" />
         </div>
 
-        {/* 操作按钮 - 固定底部 */}
-        <div className="flex-shrink-0 border-t border-gray-100 px-5 py-4 bg-white rounded-b-2xl">
+        {/* 操作按钮 - 吸底 */}
+        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-5 py-4">
           <div className="flex gap-3 mb-2">
             <button
               onClick={handleSave}
