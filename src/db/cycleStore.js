@@ -1,4 +1,5 @@
 import { getDB } from './index'
+import { parseDate } from '../utils/date'
 
 /**
  * 排班周期模式数据操作
@@ -71,8 +72,8 @@ export async function getAllCyclePatterns() {
 export function getShiftIdFromCycle(pattern, dateStr) {
   if (!pattern || !pattern.pattern || pattern.pattern.length === 0) return null
 
-  const startDate = new Date(pattern.startDate + 'T00:00:00')
-  const date = new Date(dateStr + 'T00:00:00')
+  const startDate = parseDate(pattern.startDate)
+  const date = parseDate(dateStr)
   const diff = Math.floor((date - startDate) / (1000 * 60 * 60 * 24))
 
   // 日期在周期开始之前 → 不应用
