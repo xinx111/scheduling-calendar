@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getAllShifts, addShift, deleteShift } from '../db/shiftStore'
-import { getDB } from '../db/index'
+import { getDB, resetDB } from '../db/index'
 import { showToast } from '../components/Toast'
 
 function hexToRgba(hex, alpha = 0.15) {
@@ -249,14 +249,10 @@ export default function SettingsPage() {
             <button
               onClick={() => {
                 if (window.confirm('确定要清除所有数据？此操作不可恢复！')) {
-                  import('../db/index').then(({ resetDB }) =>
-                    resetDB().then(() => {
-                      showToast('数据已重置')
-                      window.location.reload()
-                    }).catch((err) => {
-                      showToast('重置失败: ' + err.message, 'error')
-                    })
-                  ).catch((err) => {
+                  resetDB().then(() => {
+                    showToast('数据已重置')
+                    window.location.reload()
+                  }).catch((err) => {
                     showToast('重置失败: ' + err.message, 'error')
                   })
                 }

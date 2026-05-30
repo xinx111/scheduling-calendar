@@ -6,12 +6,10 @@ import PersonSelector from '../components/PersonSelector'
 import CalendarGrid from '../components/CalendarGrid'
 import ShiftPicker from '../components/ShiftPicker'
 import CycleDialog from '../components/CycleDialog'
-import { getWeekRange, today as getToday } from '../utils/date'
-import { getPersonSchedulesInRange, addScheduleRecord, deleteScheduleRecord, getColleaguesByDateAndShift } from '../db/scheduleStore'
+import { getWeekRange, today as getToday, getDaysInMonth } from '../utils/date'
+import { getPersonSchedulesInRange, addScheduleRecord, deleteScheduleRecord } from '../db/scheduleStore'
 import { getShift, getAllShifts } from '../db/shiftStore'
-import { getPerson } from '../db/personStore'
-import { getMemosByDate } from '../db/memoStore'
-import { getDaysInMonth } from '../utils/date'
+import { getMemosInRange } from '../db/memoStore'
 import { getCyclePattern, saveCyclePattern, deleteCyclePattern, getShiftIdFromCycle } from '../db/cycleStore'
 import { showToast } from '../components/Toast'
 
@@ -62,21 +60,7 @@ export default function HomePage() {
     const map = {}
     for (const record of records) {
       const shift = await getShift(record.shiftId)
-
-      // 获取同班同事
-      let colleagues = []
-      if (record.shiftId) {
-        const colleagueRecords = await getColleaguesByDateAndShift(record.date, record.shiftId)
-        colleagues = (
-          await Promise.all(
-            colleagueRecords
-              .filter((c) => c.personId !== selectedPersonId)
-              .map((c) => getPerson(c.personId))
-          )
-        ).filter(Boolean)
-      }
-
-      map[record.date] = { record, shift, colleagues, hasMemo: false }
+      map[record.date] = { record, shift, hasMemo: false }
     }
 
     // 加载周期模式并填充未排班日期
@@ -87,37 +71,24 @@ export default function HomePage() {
       const daysInMonth = getDaysInMonth(calendar.year, calendar.month)
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${calendar.year}-${String(calendar.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-        // 不覆盖已有排班
         if (!map[dateStr] || !map[dateStr].shift) {
           const shiftId = getShiftIdFromCycle(cyclePattern, dateStr)
           if (shiftId) {
             const shift = await getShift(shiftId)
-            // 获取同班同事
-            let colleagues = []
-            if (shift && shift.id !== 'shift-off') {
-              const colleagueRecords = await getColleaguesByDateAndShift(dateStr, shiftId)
-              colleagues = (
-                await Promise.all(
-                  colleagueRecords
-                    .filter((c) => c.personId !== selectedPersonId)
-                    .map((c) => getPerson(c.personId))
-                )
-              ).filter(Boolean)
-            }
-            map[dateStr] = { shift, colleagues, hasMemo: map[dateStr]?.hasMemo || false, isCycle: true }
+            map[dateStr] = { shift, hasMemo: map[dateStr]?.hasMemo || false, isCycle: true }
           }
         }
       }
     }
 
-    // 检查今日备注
-    const today = getToday()
-    const todayMemos = await getMemosByDate(today)
-    if (todayMemos.length > 0) {
-      if (!map[today]) {
-        map[today] = { shift: null, colleagues: [], hasMemo: true }
+    // 加载整月备注标记
+    const memos = await getMemosInRange(startDate, endDate)
+    const memoDateSet = new Set(memos.map((m) => m.date))
+    for (const date of memoDateSet) {
+      if (!map[date]) {
+        map[date] = { shift: null, hasMemo: true }
       } else {
-        map[today].hasMemo = true
+        map[date].hasMemo = true
       }
     }
 
@@ -296,12 +267,6 @@ export default function HomePage() {
           className="flex-1 btn-primary text-center"
         >
           📷 拍照识别
-        </button>
-        <button
-          onClick={() => navigate('/calendar')}
-          className="flex-1 btn-secondary text-center"
-        >
-          📅 完整月视图
         </button>
       </div>
 

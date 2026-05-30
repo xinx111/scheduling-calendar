@@ -4,7 +4,7 @@ import { WEEKDAY_NAMES } from '../constants'
 /**
  * 日历网格组件
  * @param {Array} grid - 日历网格数据（from useCalendar）
- * @param {Object} schedulesMap - { "2026-05-25": { shift, colleagues, isCycle } }
+ * @param {Object} schedulesMap - { "2026-05-25": { shift, hasMemo, isCycle } }
  * @param {string} selectedDate - 选中日期
  * @param {Function} onDateClick - 日期点击回调
  */
@@ -34,14 +34,11 @@ export default function CalendarGrid({
       <div className="grid grid-cols-7 gap-1">
         {grid.map((day, index) => {
           const dayData = schedulesMap[day.date]
-          const colleagues = dayData?.colleagues || []
           return (
             <CalendarDay
               key={day.date + index}
               day={day}
               shift={dayData?.shift}
-              colleagueCount={colleagues.length}
-              colleagueNames={colleagues.map((c) => c?.name).filter(Boolean)}
               hasMemo={dayData?.hasMemo}
               isCycle={dayData?.isCycle}
               isSelected={day.date === selectedDate}

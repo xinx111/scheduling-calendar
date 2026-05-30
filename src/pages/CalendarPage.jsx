@@ -5,9 +5,8 @@ import { useCalendar } from '../hooks/useCalendar'
 import PersonSelector from '../components/PersonSelector'
 import CalendarGrid from '../components/CalendarGrid'
 import ShiftPicker from '../components/ShiftPicker'
-import { getPersonSchedulesInRange, addScheduleRecord, deleteScheduleRecord, getColleaguesByDateAndShift } from '../db/scheduleStore'
+import { getPersonSchedulesInRange, addScheduleRecord, deleteScheduleRecord } from '../db/scheduleStore'
 import { getShift, getAllShifts } from '../db/shiftStore'
-import { getPerson } from '../db/personStore'
 import { getMemosInRange } from '../db/memoStore'
 import { today as getToday, getDaysInMonth } from '../utils/date'
 import { getCyclePattern, getShiftIdFromCycle } from '../db/cycleStore'
@@ -50,29 +49,7 @@ export default function CalendarPage() {
     const map = {}
     for (const record of records) {
       const shift = await getShift(record.shiftId)
-      let colleagues = []
-      if (record.shiftId) {
-        const colleagueRecords = await getColleaguesByDateAndShift(record.date, record.shiftId)
-        colleagues = (
-          await Promise.all(
-            colleagueRecords
-              .filter((c) => c.personId !== selectedPersonId)
-              .map((c) => getPerson(c.personId))
-          )
-        ).filter(Boolean)
-      }
-      map[record.date] = { record, shift, colleagues, hasMemo: false }
-    }
-
-    // 加载当月所有备注标记
-    const memos = await getMemosInRange(startDate, endDate)
-    const memoDateSet = new Set(memos.map((m) => m.date))
-    for (const date of memoDateSet) {
-      if (!map[date]) {
-        map[date] = { shift: null, colleagues: [], hasMemo: true }
-      } else {
-        map[date].hasMemo = true
-      }
+      map[record.date] = { record, shift, hasMemo: false }
     }
 
     // 加载周期模式并填充未排班日期
@@ -85,20 +62,20 @@ export default function CalendarPage() {
           const shiftId = getShiftIdFromCycle(cyclePattern, dateStr)
           if (shiftId) {
             const shift = await getShift(shiftId)
-            let colleagues = []
-            if (shift && shift.id !== 'shift-off') {
-              const colleagueRecords = await getColleaguesByDateAndShift(dateStr, shiftId)
-              colleagues = (
-                await Promise.all(
-                  colleagueRecords
-                    .filter((c) => c.personId !== selectedPersonId)
-                    .map((c) => getPerson(c.personId))
-                )
-              ).filter(Boolean)
-            }
-            map[dateStr] = { shift, colleagues, hasMemo: map[dateStr]?.hasMemo || false, isCycle: true }
+            map[dateStr] = { shift, hasMemo: map[dateStr]?.hasMemo || false, isCycle: true }
           }
         }
+      }
+    }
+
+    // 加载整月备注标记
+    const memos = await getMemosInRange(startDate, endDate)
+    const memoDateSet = new Set(memos.map((m) => m.date))
+    for (const date of memoDateSet) {
+      if (!map[date]) {
+        map[date] = { shift: null, hasMemo: true }
+      } else {
+        map[date].hasMemo = true
       }
     }
 

@@ -84,7 +84,6 @@ export const COLORS = {
 export const NAV_ITEMS = [
   { path: '/', label: '排班', icon: '📅', exact: true },
   { path: '/people', label: '人员', icon: '👥' },
-  { path: '/upload', label: '识别', icon: '📷' },
   { path: '/reminders', label: '提醒', icon: '🔔' },
   { path: '/settings', label: '设置', icon: '⚙️' },
 ]
