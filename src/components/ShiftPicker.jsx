@@ -47,6 +47,7 @@ export default function ShiftPicker({
       })
       setSavedMemo(memo)
       setShowMemo(false)
+      window.dispatchEvent(new CustomEvent('memo-changed'))
     } catch (err) {
       showToast('保存备注失败: ' + err.message, 'error')
     }

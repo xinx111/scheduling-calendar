@@ -19,14 +19,19 @@ export function useReminder() {
     setUpcoming(upcomingData)
   }, [])
 
-  // 定期检查提醒（每分钟）
+  // 定期检查提醒（每分钟），同时监听手动变更事件
   useEffect(() => {
     checkReminders()
     intervalRef.current = setInterval(checkReminders, 60000)
+
+    const onMemoChanged = () => checkReminders()
+    window.addEventListener('memo-changed', onMemoChanged)
+
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current)
       }
+      window.removeEventListener('memo-changed', onMemoChanged)
     }
   }, [checkReminders])
 

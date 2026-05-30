@@ -11,25 +11,36 @@ export default function RemindersPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let mounted = true
+
     const load = async () => {
-      setLoading(true)
       const pending = await memoStore.getPendingReminders()
+      if (!mounted) return
       setReminders(pending)
       setLoading(false)
     }
     load()
+
+    const onMemoChanged = () => load()
+    window.addEventListener('memo-changed', onMemoChanged)
+    return () => {
+      mounted = false
+      window.removeEventListener('memo-changed', onMemoChanged)
+    }
   }, [pendingCount])
 
   const handleMarkDone = async (id) => {
     await memoStore.markMemoDone(id)
     setReminders((prev) => prev.filter((r) => r.id !== id))
     showToast('已标记完成')
+    window.dispatchEvent(new CustomEvent('memo-changed'))
   }
 
   const handleDelete = async (id) => {
     await memoStore.deleteMemo(id)
     setReminders((prev) => prev.filter((r) => r.id !== id))
     showToast('已删除')
+    window.dispatchEvent(new CustomEvent('memo-changed'))
   }
 
   const handleRequestPermission = async () => {

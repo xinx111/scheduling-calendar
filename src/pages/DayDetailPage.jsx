@@ -53,15 +53,18 @@ export default function DayDetailPage() {
     setMemoTime('')
     setShowAddMemo(false)
     showToast('备注已添加')
+    window.dispatchEvent(new CustomEvent('memo-changed'))
   }
 
   const handleDeleteMemo = async (id) => {
     await deleteMemo(id, date)
     showToast('备注已删除')
+    window.dispatchEvent(new CustomEvent('memo-changed'))
   }
 
   const handleMarkDone = async (id) => {
     await markDone(id, date)
+    window.dispatchEvent(new CustomEvent('memo-changed'))
   }
 
   if (loading) {
