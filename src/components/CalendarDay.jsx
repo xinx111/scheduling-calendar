@@ -8,7 +8,9 @@ export default function CalendarDay({
   day,
   shift,
   colleagueCount = 0,
+  colleagueNames = [],
   hasMemo = false,
+  isCycle = false,
   isSelected = false,
   onClick,
 }) {
@@ -27,6 +29,7 @@ export default function CalendarDay({
         transition-all duration-100 active:scale-95
         ${!day.isCurrentMonth ? 'opacity-30' : ''}
         ${isSelected ? 'ring-2 ring-primary-500 bg-primary-50' : 'hover:bg-gray-100'}
+        ${isCycle ? 'ring-1 ring-amber-300 ring-dashed' : ''}
       `}
     >
       {/* 日期数字 */}
@@ -45,23 +48,36 @@ export default function CalendarDay({
       {/* 班次标签 */}
       {shift && (
         <span
-          className={`text-[10px] leading-tight px-1.5 py-0.5 rounded-full font-medium truncate max-w-full ${shiftTextColor}`}
+          className={`text-[10px] leading-tight px-1.5 py-0.5 rounded-full font-medium truncate max-w-full ${shiftTextColor} ${
+            isCycle ? 'ring-1 ring-inset ring-white/50' : ''
+          }`}
           style={{ backgroundColor: shiftColor }}
         >
           {shift.shortName || shift.name}
         </span>
       )}
 
-      {/* 同班人数 */}
+      {/* 同班同事 */}
       {colleagueCount > 0 && (
-        <span className="text-[10px] text-slate-400 mt-0.5">
-          👥{colleagueCount}
-        </span>
+        <div className="flex items-center gap-0.5 mt-0.5 max-w-full overflow-hidden">
+          <span className="text-[10px] text-slate-400 flex-shrink-0">
+            👥
+          </span>
+          <span className="text-[9px] text-slate-400 truncate">
+            {colleagueNames.slice(0, 2).join('、')}
+            {colleagueCount > 2 && ` +${colleagueCount - 2}`}
+          </span>
+        </div>
       )}
 
-      {/* 有备注的小点 */}
+      {/* 备注标记 */}
       {hasMemo && !shift && (
         <span className="text-[10px] mt-0.5">📝</span>
+      )}
+
+      {/* 周期标记小点 */}
+      {isCycle && !hasMemo && !colleagueCount && (
+        <span className="text-[8px] text-amber-400 mt-0.5">↻</span>
       )}
     </button>
   )

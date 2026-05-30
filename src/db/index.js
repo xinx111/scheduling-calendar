@@ -2,7 +2,7 @@ import { openDB } from 'idb'
 import { DEFAULT_SHIFTS } from '../constants'
 
 const DB_NAME = 'scheduling-calendar'
-const DB_VERSION = 1
+const DB_VERSION = 2
 
 /**
  * 获取当前数据库版本号（检测已有数据库的版本）
@@ -82,6 +82,13 @@ export async function initDB() {
         memoStore.createIndex('date', 'date', { unique: false })
         memoStore.createIndex('remindAt', 'remindAt', { unique: false })
         memoStore.createIndex('isDone', 'isDone', { unique: false })
+      }
+
+      // ----- cyclePatterns 表（排班周期模式）-----
+      if (!db.objectStoreNames.contains('cyclePatterns')) {
+        const cycleStore = db.createObjectStore('cyclePatterns', {
+          keyPath: 'personId',
+        })
       }
     },
   })
