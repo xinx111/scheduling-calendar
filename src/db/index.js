@@ -103,19 +103,26 @@ export async function getDB() {
 }
 
 /**
- * 重置数据库（调试用）
- * 删除整个数据库后重新初始化
+ * 重置数据库
+ * 清空所有表的数据（不删表结构，避免版本号问题）
  */
 export async function resetDB() {
-  _db = null
+  const db = await getDB()
 
-  // 强制关闭所有连接并删除数据库
-  await new Promise((resolve, reject) => {
-    const req = indexedDB.deleteDatabase(DB_NAME)
-    req.onsuccess = resolve
-    req.onerror = () => reject(new Error('删除数据库失败'))
-    req.onblocked = () => reject(new Error('数据库被占用，请关闭其他标签页后重试'))
-  })
+  // 清空每个表的数据
+  const storeNames = Array.from(db.objectStoreNames)
+  for (const name of storeNames) {
+    const tx = db.transaction(name, 'readwrite')
+    await tx.store.clear()
+    await tx.done
+  }
 
-  return initDB()
+  // 重新插入默认班次
+  const shiftTx = db.transaction('shiftTemplates', 'readwrite')
+  for (const shift of DEFAULT_SHIFTS) {
+    await shiftTx.store.put(shift)
+  }
+  await shiftTx.done
+
+  return db
 }

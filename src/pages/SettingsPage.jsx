@@ -81,8 +81,12 @@ export default function SettingsPage() {
                   resetDB().then(() => {
                     showToast('数据已重置')
                     window.location.reload()
+                  }).catch((err) => {
+                    showToast('重置失败: ' + err.message, 'error')
                   })
-                )
+                ).catch((err) => {
+                  showToast('重置失败: ' + err.message, 'error')
+                })
               }
             }}
             className="flex-1 bg-red-50 text-red-500 border border-red-200 px-4 py-2 rounded-xl text-sm font-medium active:scale-95 transition-all"
