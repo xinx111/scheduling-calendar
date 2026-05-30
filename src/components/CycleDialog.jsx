@@ -58,8 +58,38 @@ export default function CycleDialog({
           <p className="text-xs text-slate-400 mt-1">{personName}</p>
         </div>
 
+        {/* 操作按钮 - 顶部 */}
+        <div className="px-5 pt-3 pb-1">
+          <div className="flex gap-3">
+            <button
+              onClick={handleSave}
+              disabled={!hasSelection}
+              className="flex-1 btn-primary text-sm py-3 text-center disabled:opacity-50"
+            >
+              ✓ 保存周期
+            </button>
+            <button
+              onClick={onClose}
+              className="btn-secondary text-sm py-3 flex-1 text-center"
+            >
+              取消
+            </button>
+          </div>
+          {existingPattern && (
+            <button
+              onClick={() => {
+                onDelete(personId)
+                onClose()
+              }}
+              className="w-full py-2 text-xs text-red-400 underline underline-offset-2 text-center"
+            >
+              删除当前周期
+            </button>
+          )}
+        </div>
+
         {/* 内容 */}
-        <div className="px-5 py-3 space-y-3">
+        <div className="px-5 pb-3 space-y-3">
           {/* 周期天数 */}
           <div>
             <label className="text-xs font-medium text-slate-500 mb-2 block">
@@ -144,38 +174,6 @@ export default function CycleDialog({
             </div>
           </div>
 
-          {/* 底部留白给按钮 */}
-          <div className="h-4" />
-        </div>
-
-        {/* 操作按钮 - 吸底 */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-100 px-5 py-4">
-          <div className="flex gap-3 mb-2">
-            <button
-              onClick={handleSave}
-              disabled={!hasSelection}
-              className="flex-1 btn-primary text-sm py-3 text-center disabled:opacity-50"
-            >
-              ✓ 保存周期
-            </button>
-            <button
-              onClick={onClose}
-              className="btn-secondary text-sm py-3 flex-1 text-center"
-            >
-              取消
-            </button>
-          </div>
-          {existingPattern && (
-            <button
-              onClick={() => {
-                onDelete(personId)
-                onClose()
-              }}
-              className="w-full py-2 text-xs text-red-400 underline underline-offset-2 text-center"
-            >
-              删除当前周期
-            </button>
-          )}
         </div>
       </div>
     </div>
