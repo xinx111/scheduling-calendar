@@ -9,24 +9,6 @@ const DB_VERSION = 2
  * 创建所有数据表和索引
  */
 export async function initDB() {
-  // 部分用户的数据库可能因之前的 bug 变成了空壳（版本 2 但无表）。
-  // 先试探性打开，检查关键表是否存在，缺失则删库重建。
-  try {
-    const probe = await openDB(DB_NAME, undefined, { upgrade() {} })
-    const hasTables = probe.objectStoreNames.contains('persons')
-    probe.close()
-    if (!hasTables) {
-      await new Promise((resolve, reject) => {
-        const req = indexedDB.deleteDatabase(DB_NAME)
-        req.onsuccess = resolve
-        req.onerror = reject
-        req.onblocked = resolve // 阻塞也算成功，后续 openDB 会重试
-      })
-    }
-  } catch {
-    // 数据库不存在，正常走 initDB
-  }
-
   const db = await openDB(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion, newVersion, transaction) {
       // ----- persons 表 -----
@@ -56,11 +38,9 @@ export async function initDB() {
         recordStore.createIndex('personId', 'personId', { unique: false })
         recordStore.createIndex('date', 'date', { unique: false })
         recordStore.createIndex('shiftId', 'shiftId', { unique: false })
-        // 复合索引：按人和日期查询
         recordStore.createIndex('personId+date', ['personId', 'date'], {
           unique: true,
         })
-        // 复合索引：按日期和班次（找同班同事）
         recordStore.createIndex('date+shiftId', ['date', 'shiftId'], {
           unique: false,
         })
@@ -86,16 +66,30 @@ export async function initDB() {
 
       // ----- cyclePatterns 表（排班周期模式）-----
       if (!db.objectStoreNames.contains('cyclePatterns')) {
-        const cycleStore = db.createObjectStore('cyclePatterns', {
+        db.createObjectStore('cyclePatterns', {
           keyPath: 'personId',
         })
       }
     },
   })
 
+  // 检查数据库是否完整，如果缺少 persons 表说明是空壳库
+  if (!db.objectStoreNames.contains('persons')) {
+    // 关掉当前连接，删掉空壳库，重新初始化
+    db.close()
+    await new Promise((resolve, reject) => {
+      const req = indexedDB.deleteDatabase(DB_NAME)
+      req.onsuccess = resolve
+      req.onerror = reject
+      req.onblocked = reject
+    })
+    return initDB() // 递归重试，这次会从零创建
+  }
+
   // 首次启动：初始化默认班次
   const shiftCount = await db.count('shiftTemplates')
   if (shiftCount === 0) {
+    // 用单独的读写事务写入默认班次
     const tx = db.transaction('shiftTemplates', 'readwrite')
     for (const shift of DEFAULT_SHIFTS) {
       await tx.store.put(shift)
@@ -120,7 +114,7 @@ export async function getDB() {
 
 /**
  * 重置数据库
- * 清空所有表的数据（不删表结构，避免版本号问题）
+ * 清空所有表的数据（不删表结构）
  */
 export async function resetDB() {
   const db = await getDB()
