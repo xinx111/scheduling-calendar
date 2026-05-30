@@ -7,10 +7,26 @@ const DB_VERSION = 2
 /**
  * 初始化 IndexedDB 数据库
  * 创建所有数据表和索引
- *
- * DB_VERSION=2 新增 cyclePatterns 表
  */
 export async function initDB() {
+  // 部分用户的数据库可能因之前的 bug 变成了空壳（版本 2 但无表）。
+  // 先试探性打开，检查关键表是否存在，缺失则删库重建。
+  try {
+    const probe = await openDB(DB_NAME, undefined, { upgrade() {} })
+    const hasTables = probe.objectStoreNames.contains('persons')
+    probe.close()
+    if (!hasTables) {
+      await new Promise((resolve, reject) => {
+        const req = indexedDB.deleteDatabase(DB_NAME)
+        req.onsuccess = resolve
+        req.onerror = reject
+        req.onblocked = resolve // 阻塞也算成功，后续 openDB 会重试
+      })
+    }
+  } catch {
+    // 数据库不存在，正常走 initDB
+  }
+
   const db = await openDB(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion, newVersion, transaction) {
       // ----- persons 表 -----

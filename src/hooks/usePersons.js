@@ -35,6 +35,12 @@ export function usePersons() {
     return person
   }, [load])
 
+  const addPersons = useCallback(async (names) => {
+    const persons = await personStore.addPersons(names)
+    await load()
+    return persons
+  }, [load])
+
   const updatePerson = useCallback(async (id, updates) => {
     const person = await personStore.updatePerson(id, updates)
     await load()
