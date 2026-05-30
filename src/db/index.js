@@ -95,15 +95,22 @@ export async function getDB() {
 
 /**
  * 重置数据库（调试用）
+ * 删除整个数据库后重新初始化（避免版本号冲突）
  */
 export async function resetDB() {
   _db = null
-  await openDB(DB_NAME, DB_VERSION + 1, {
-    upgrade(db) {
-      for (const name of db.objectStoreNames) {
-        db.deleteObjectStore(name)
-      }
-    },
+
+  // 先关闭旧连接
+  await openDB(DB_NAME, DB_VERSION, { upgrade() {} }).then((db) => db.close())
+
+  // 删除整个数据库
+  await new Promise((resolve, reject) => {
+    const req = indexedDB.deleteDatabase(DB_NAME)
+    req.onsuccess = resolve
+    req.onerror = () => reject(new Error('删除数据库失败'))
+    req.onblocked = () => reject(new Error('数据库被占用，请关闭其他标签页后重试'))
   })
+
+  // 重新初始化（此时 DB_VERSION=1 是最新的版本号）
   return initDB()
 }

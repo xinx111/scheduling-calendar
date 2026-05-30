@@ -37,12 +37,14 @@ export async function saveSchedule(scheduleData) {
   // 检查是否已存在该周
   const existing = await getScheduleByWeekStart(scheduleData.weekStart)
 
+  const now = Date.now()
   const schedule = {
     id: existing ? existing.id : generateId(),
     weekStart: scheduleData.weekStart,
     weekEnd: scheduleData.weekEnd,
     title: scheduleData.title || `${scheduleData.weekStart} 周排班`,
-    createdAt: existing ? existing.createdAt : Date.now(),
+    createdAt: existing ? existing.createdAt : now,
+    updatedAt: now,
     sourceImage: scheduleData.sourceImage || existing?.sourceImage || null,
   }
 

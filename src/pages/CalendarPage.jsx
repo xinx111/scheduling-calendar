@@ -6,6 +6,7 @@ import PersonSelector from '../components/PersonSelector'
 import CalendarGrid from '../components/CalendarGrid'
 import { getPersonSchedulesInRange } from '../db/scheduleStore'
 import { getShift } from '../db/shiftStore'
+import { getMemosInRange } from '../db/memoStore'
 import { today as getToday } from '../utils/date'
 
 export default function CalendarPage() {
@@ -40,7 +41,18 @@ export default function CalendarPage() {
       const map = {}
       for (const record of records) {
         const shift = await getShift(record.shiftId)
-        map[record.date] = { record, shift, colleagues: [] }
+        map[record.date] = { record, shift, colleagues: [], hasMemo: false }
+      }
+
+      // 加载当月所有备注标记
+      const memos = await getMemosInRange(startDate, endDate)
+      const memoDateSet = new Set(memos.map((m) => m.date))
+      for (const date of memoDateSet) {
+        if (!map[date]) {
+          map[date] = { shift: null, colleagues: [], hasMemo: true }
+        } else {
+          map[date].hasMemo = true
+        }
       }
 
       setSchedulesMap(map)

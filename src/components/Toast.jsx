@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 /**
  * Toast 提示组件
@@ -14,18 +14,26 @@ export function showToast(message, type = 'success', duration = 2000) {
 
 export default function ToastContainer() {
   const [toasts, setToasts] = useState([])
+  const timersRef = useRef({})
 
   const addToast = useCallback((detail) => {
     setToasts((prev) => [...prev, detail])
-    setTimeout(() => {
+    const timerId = setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== detail.id))
+      delete timersRef.current[detail.id]
     }, detail.duration || 2000)
+    timersRef.current[detail.id] = timerId
   }, [])
 
   useEffect(() => {
     const handler = (e) => addToast(e.detail)
     window.addEventListener('show-toast', handler)
-    return () => window.removeEventListener('show-toast', handler)
+    return () => {
+      window.removeEventListener('show-toast', handler)
+      // 组件卸载时清理所有定时器
+      Object.values(timersRef.current).forEach(clearTimeout)
+      timersRef.current = {}
+    }
   }, [addToast])
 
   if (toasts.length === 0) return null

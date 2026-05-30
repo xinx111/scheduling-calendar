@@ -114,7 +114,7 @@ export default function HomePage() {
         {/* 日历 */}
         {dataLoading ? (
           <div className="flex justify-center py-8">
-            <div className="animate-spin w-6 h-6 border-3 border-primary-200 border-t-primary-600 rounded-full" />
+            <div className="animate-spin w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full" />
           </div>
         ) : (
           <CalendarGrid

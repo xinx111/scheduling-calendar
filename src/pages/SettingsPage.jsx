@@ -27,7 +27,7 @@ export default function SettingsPage() {
         </h3>
         {loading ? (
           <div className="flex justify-center py-4">
-            <div className="animate-spin w-6 h-6 border-3 border-primary-200 border-t-primary-600 rounded-full" />
+            <div className="animate-spin w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full" />
           </div>
         ) : (
           <div className="space-y-2">

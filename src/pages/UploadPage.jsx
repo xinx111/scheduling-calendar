@@ -50,6 +50,9 @@ export default function UploadPage() {
     // 显示预览
     const reader = new FileReader()
     reader.onload = (ev) => setImage(ev.target.result)
+    reader.onerror = () => {
+      showToast('图片读取失败，请重试', 'error')
+    }
     reader.readAsDataURL(file)
 
     // 压缩图片
@@ -175,7 +178,8 @@ export default function UploadPage() {
       await addScheduleRecords(records)
 
       // 保存周批次
-      const dates = result.shifts.map((s) => s.date).filter(Boolean)
+      const shiftsArray = result.shifts || []
+      const dates = shiftsArray.map((s) => s.date).filter(Boolean)
       if (dates.length > 0) {
         dates.sort()
         const weekStart = dates[0]
@@ -319,7 +323,7 @@ export default function UploadPage() {
           </div>
 
           <p className="text-xs text-slate-400 mb-3">
-            共 {result.shifts?.length || 0} 条排班记录
+            共 {(result.shifts || []).length} 条排班记录
           </p>
 
           <div className="flex gap-3">

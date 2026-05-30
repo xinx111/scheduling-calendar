@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import * as scheduleStore from '../db/scheduleStore'
 import * as shiftStore from '../db/shiftStore'
 import * as personStore from '../db/personStore'
@@ -8,46 +8,54 @@ import * as personStore from '../db/personStore'
  */
 export function useSchedules() {
   const [loading, setLoading] = useState(false)
+  const pendingRequests = useRef(0)
 
   /**
    * 获取某人在某月的排班
    */
   const getPersonMonthSchedules = useCallback(async (personId, year, month) => {
+    pendingRequests.current += 1
     setLoading(true)
     const startDate = `${year}-${String(month).padStart(2, '0')}-01`
     const lastDay = new Date(year, month, 0).getDate()
     const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
-    const records = await scheduleStore.getPersonSchedulesInRange(
-      personId,
-      startDate,
-      endDate
-    )
-
-    // 转换为 map: { "2026-05-25": { shift, colleagues } }
-    const result = {}
-    for (const record of records) {
-      const shift = await shiftStore.getShift(record.shiftId)
-      // 获取同班同事
-      const colleagues = await scheduleStore.getColleaguesByDateAndShift(
-        record.date,
-        record.shiftId
-      )
-      const colleaguePersons = await Promise.all(
-        colleagues
-          .filter((c) => c.personId !== personId)
-          .map((c) => personStore.getPerson(c.personId))
+    try {
+      const records = await scheduleStore.getPersonSchedulesInRange(
+        personId,
+        startDate,
+        endDate
       )
 
-      result[record.date] = {
-        record,
-        shift,
-        colleagues: colleaguePersons.filter(Boolean),
+      // 转换为 map: { "2026-05-25": { shift, colleagues } }
+      const result = {}
+      for (const record of records) {
+        const shift = await shiftStore.getShift(record.shiftId)
+        // 获取同班同事
+        const colleagues = await scheduleStore.getColleaguesByDateAndShift(
+          record.date,
+          record.shiftId
+        )
+        const colleaguePersons = await Promise.all(
+          colleagues
+            .filter((c) => c.personId !== personId)
+            .map((c) => personStore.getPerson(c.personId))
+        )
+
+        result[record.date] = {
+          record,
+          shift,
+          colleagues: colleaguePersons.filter(Boolean),
+        }
+      }
+
+      return result
+    } finally {
+      pendingRequests.current -= 1
+      if (pendingRequests.current === 0) {
+        setLoading(false)
       }
     }
-
-    setLoading(false)
-    return result
   }, [])
 
   /**
