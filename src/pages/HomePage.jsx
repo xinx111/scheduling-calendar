@@ -7,8 +7,9 @@ import CalendarGrid from '../components/CalendarGrid'
 import ShiftPicker from '../components/ShiftPicker'
 import CycleDialog from '../components/CycleDialog'
 import { getWeekRange, today as getToday, getDaysInMonth } from '../utils/date'
-import { getPersonSchedulesInRange, addScheduleRecord, deleteScheduleRecord } from '../db/scheduleStore'
+import { getPersonSchedulesInRange, addScheduleRecord, deleteScheduleRecord, getColleaguesByDateAndShift } from '../db/scheduleStore'
 import { getShift, getAllShifts } from '../db/shiftStore'
+import { getPerson } from '../db/personStore'
 import { getMemosInRange } from '../db/memoStore'
 import { getCyclePattern, saveCyclePattern, deleteCyclePattern, getShiftIdFromCycle } from '../db/cycleStore'
 import { showToast } from '../components/Toast'
@@ -23,6 +24,7 @@ export default function HomePage() {
 
   // 手动排班状态
   const [pickerDate, setPickerDate] = useState(null)
+  const [pickerColleagues, setPickerColleagues] = useState([])
   const [allShifts, setAllShifts] = useState([])
   const [cycleDialogOpen, setCycleDialogOpen] = useState(false)
   const [currentCycle, setCurrentCycle] = useState(null)
@@ -101,13 +103,27 @@ export default function HomePage() {
   }, [loadSchedules])
 
   // 点击日期
-  const handleDateClick = (date) => {
+  const handleDateClick = async (date) => {
     if (!selectedPersonId) {
-      // 没选人员 → 跳到详情页看全员排班
       navigate(`/day/${date}`)
       return
     }
-    // 选了人员 → 弹出班次选择器
+    // 加载当天同班同事
+    const entry = schedulesMap[date]
+    const shiftId = entry?.shift?.id
+    if (shiftId) {
+      const colleagueRecords = await getColleaguesByDateAndShift(date, shiftId)
+      const colleaguePersons = (
+        await Promise.all(
+          colleagueRecords
+            .filter((c) => c.personId !== selectedPersonId)
+            .map((c) => getPerson(c.personId))
+        )
+      ).filter(Boolean)
+      setPickerColleagues(colleaguePersons)
+    } else {
+      setPickerColleagues([])
+    }
     setPickerDate(date)
   }
 
@@ -290,6 +306,7 @@ export default function HomePage() {
           currentShiftId={getCurrentShiftForPicker()}
           date={pickerDate}
           personName={selectedPerson.name}
+          colleagues={pickerColleagues}
           onSelect={handleShiftSelect}
           onRemove={handleShiftRemove}
           onClose={() => setPickerDate(null)}

@@ -11,6 +11,7 @@ export default function ShiftPicker({
   currentShiftId,
   date,
   personName,
+  colleagues,
   onSelect,
   onRemove,
   onClose,
@@ -77,6 +78,31 @@ export default function ShiftPicker({
               ✕
             </button>
           </div>
+          {/* 同班同事 */}
+          {colleagues && colleagues.length > 0 && (
+            <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-gray-50">
+              <span className="text-[11px] text-slate-400 flex-shrink-0">👥 同班：</span>
+              <div className="flex flex-wrap gap-1">
+                {colleagues.map((c) => (
+                  <span
+                    key={c.id}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-gray-100 text-slate-600"
+                  >
+                    <span
+                      className="w-3 h-3 rounded-full flex-shrink-0"
+                      style={{ backgroundColor: c.color }}
+                    />
+                    {c.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {colleagues && colleagues.length === 0 && personName && (
+            <div className="mt-2 pt-2 border-t border-gray-50">
+              <span className="text-[11px] text-slate-300">👥 当天无同班同事</span>
+            </div>
+          )}
         </div>
 
         {/* 班次列表 */}

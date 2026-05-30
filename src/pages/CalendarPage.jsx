@@ -5,7 +5,8 @@ import { useCalendar } from '../hooks/useCalendar'
 import PersonSelector from '../components/PersonSelector'
 import CalendarGrid from '../components/CalendarGrid'
 import ShiftPicker from '../components/ShiftPicker'
-import { getPersonSchedulesInRange, addScheduleRecord, deleteScheduleRecord } from '../db/scheduleStore'
+import { getPersonSchedulesInRange, addScheduleRecord, deleteScheduleRecord, getColleaguesByDateAndShift } from '../db/scheduleStore'
+import { getPerson } from '../db/personStore'
 import { getShift, getAllShifts } from '../db/shiftStore'
 import { getMemosInRange } from '../db/memoStore'
 import { today as getToday, getDaysInMonth } from '../utils/date'
@@ -21,6 +22,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(false)
   const [allShifts, setAllShifts] = useState([])
   const [pickerDate, setPickerDate] = useState(null)
+  const [pickerColleagues, setPickerColleagues] = useState([])
 
   useEffect(() => {
     getAllShifts().then(setAllShifts)
@@ -87,8 +89,24 @@ export default function CalendarPage() {
     loadSchedules()
   }, [loadSchedules])
 
-  const handleDateClick = (date) => {
+  const handleDateClick = async (date) => {
     if (selectedPersonId) {
+      // 加载当天同班同事
+      const entry = schedulesMap[date]
+      const shiftId = entry?.shift?.id
+      if (shiftId) {
+        const colleagueRecords = await getColleaguesByDateAndShift(date, shiftId)
+        const colleaguePersons = (
+          await Promise.all(
+            colleagueRecords
+              .filter((c) => c.personId !== selectedPersonId)
+              .map((c) => getPerson(c.personId))
+          )
+        ).filter(Boolean)
+        setPickerColleagues(colleaguePersons)
+      } else {
+        setPickerColleagues([])
+      }
       setPickerDate(date)
     } else {
       navigate(`/day/${date}`)
@@ -183,6 +201,7 @@ export default function CalendarPage() {
           currentShiftId={getCurrentShiftForPicker()}
           date={pickerDate}
           personName={selectedPerson.name}
+          colleagues={pickerColleagues}
           onSelect={handleShiftSelect}
           onRemove={handleShiftRemove}
           onClose={() => setPickerDate(null)}
