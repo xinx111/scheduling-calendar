@@ -234,7 +234,7 @@ export default function SettingsPage() {
           <span className="text-lg">💾</span>
           <h3 className="text-sm font-bold text-slate-700">数据管理</h3>
         </div>
-        <p className="text-xs text-slate-400 mb-4">数据存储在浏览器本地，清除缓存会丢失。</p>
+        <p className="text-xs text-slate-400 mb-4">数据存储在手机本地，清除缓存会消失。</p>
         <div className="flex flex-col gap-2.5">
           <button onClick={handleClearSchedules}
             className="w-full py-3 rounded-2xl text-sm font-medium bg-amber-50 text-amber-700 border border-amber-200/60 active:scale-[0.98] transition-all shadow-sm">
