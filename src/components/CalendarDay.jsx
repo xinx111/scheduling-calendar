@@ -37,7 +37,7 @@ export default function CalendarDay({
       {/* 日期数字 */}
       <span
         className={`
-          flex items-center justify-center font-semibold
+          flex items-center justify-center font-semibold text-slate-800
           ${day.isToday
             ? 'bg-gradient-to-br from-primary-500 to-primary-700 text-white w-6 h-6 rounded-full shadow-sm shadow-primary-300/50 text-[11px]'
             : 'text-xs'
@@ -46,7 +46,7 @@ export default function CalendarDay({
         style={
           day.isToday
             ? {}
-            : { width: '24px', height: '24px', color: shiftColor || undefined }
+            : { width: '24px', height: '24px' }
         }
       >
         {day.day}
