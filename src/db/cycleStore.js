@@ -4,35 +4,27 @@ import { parseDate } from '../utils/date'
 /**
  * 排班周期模式数据操作
  *
- * 周期模式让用户定义一套 N 天循环的排班模板，
- * 查看日历时自动填充未手动排班的日期。
- *
  * 数据结构：
  * {
  *   personId: "person_xxx",
  *   cycleDays: 7,
- *   startDate: "2026-05-25",      // 模板起始日期 (YYYY-MM-DD)
+ *   startDate: "2026-06-01",      // 周期起始日期
  *   pattern: [
- *     { dayOffset: 0, shiftId: "shift-morning" },  // 第1天
- *     { dayOffset: 1, shiftId: "shift-afternoon" }, // 第2天
+ *     { dayOffset: 0, shiftId: "shift-morning" },
+ *     { dayOffset: 1, shiftId: "shift-afternoon" },
  *     ...
  *   ],
+ *   excludedDates: ["2026-06-05", "2026-06-10"],  // 手动排除的日期
  *   title: "我的排班周期",
  *   updatedAt: 1234567890
  * }
  */
 
-/**
- * 获取某人的排班周期模式
- */
 export async function getCyclePattern(personId) {
   const db = await getDB()
   return db.get('cyclePatterns', personId)
 }
 
-/**
- * 保存排班周期模式
- */
 export async function saveCyclePattern(pattern) {
   const db = await getDB()
   const data = {
@@ -40,6 +32,7 @@ export async function saveCyclePattern(pattern) {
     cycleDays: pattern.cycleDays,
     startDate: pattern.startDate,
     pattern: pattern.pattern,
+    excludedDates: pattern.excludedDates || [],
     title: pattern.title || '排班周期',
     updatedAt: Date.now(),
   }
@@ -47,36 +40,63 @@ export async function saveCyclePattern(pattern) {
   return data
 }
 
-/**
- * 删除排班周期模式
- */
 export async function deleteCyclePattern(personId) {
   const db = await getDB()
   await db.delete('cyclePatterns', personId)
 }
 
-/**
- * 获取所有周期模式
- */
 export async function getAllCyclePatterns() {
   const db = await getDB()
   return db.getAll('cyclePatterns')
 }
 
 /**
+ * 添加某天到周期排除列表（该天不再被周期填充）
+ */
+export async function excludeDateFromCycle(personId, dateStr) {
+  const pattern = await getCyclePattern(personId)
+  if (!pattern) return
+  const excluded = pattern.excludedDates || []
+  if (!excluded.includes(dateStr)) {
+    excluded.push(dateStr)
+    pattern.excludedDates = excluded
+    pattern.updatedAt = Date.now()
+    const db = await getDB()
+    await db.put('cyclePatterns', pattern)
+  }
+  return pattern
+}
+
+/**
+ * 从排除列表中移除某天（恢复周期填充）
+ */
+export async function unexcludeDateFromCycle(personId, dateStr) {
+  const pattern = await getCyclePattern(personId)
+  if (!pattern) return
+  const excluded = (pattern.excludedDates || []).filter((d) => d !== dateStr)
+  pattern.excludedDates = excluded
+  pattern.updatedAt = Date.now()
+  const db = await getDB()
+  await db.put('cyclePatterns', pattern)
+  return pattern
+}
+
+/**
  * 根据周期模式计算某天的班次 ID
  * @param {Object} pattern - 周期模式对象
  * @param {string} dateStr - 日期 YYYY-MM-DD
- * @returns {string|null} shiftId 或 null
+ * @returns {string|null} shiftId 或 null（排除的日期返回 null）
  */
 export function getShiftIdFromCycle(pattern, dateStr) {
   if (!pattern || !pattern.pattern || pattern.pattern.length === 0) return null
+
+  // 排除列表中的日期不应用周期
+  if (pattern.excludedDates && pattern.excludedDates.includes(dateStr)) return null
 
   const startDate = parseDate(pattern.startDate)
   const date = parseDate(dateStr)
   const diff = Math.floor((date - startDate) / (1000 * 60 * 60 * 24))
 
-  // 日期在周期开始之前 → 不应用
   if (diff < 0) return null
 
   const patternIndex = diff % pattern.cycleDays

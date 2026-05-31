@@ -11,7 +11,7 @@ import { getPersonSchedulesInRange, addScheduleRecord, deleteScheduleRecord, get
 import { getShift, getAllShifts } from '../db/shiftStore'
 import { getPerson } from '../db/personStore'
 import { getMemosInRange } from '../db/memoStore'
-import { getCyclePattern, saveCyclePattern, deleteCyclePattern, getShiftIdFromCycle } from '../db/cycleStore'
+import { getCyclePattern, saveCyclePattern, deleteCyclePattern, getShiftIdFromCycle, excludeDateFromCycle } from '../db/cycleStore'
 import { showToast } from '../components/Toast'
 
 export default function HomePage() {
@@ -144,7 +144,6 @@ export default function HomePage() {
   const handleShiftRemove = async () => {
     if (!selectedPersonId || !pickerDate) return
     try {
-      // 查找当前排班记录 ID
       const entry = schedulesMap[pickerDate]
       if (entry?.record?.id) {
         await deleteScheduleRecord(entry.record.id)
@@ -157,11 +156,30 @@ export default function HomePage() {
     }
   }
 
+  // 移除周期排班（将该天加入周期排除列表）
+  const handleRemoveCycleShift = async () => {
+    if (!selectedPersonId || !pickerDate) return
+    try {
+      await excludeDateFromCycle(selectedPersonId, pickerDate)
+      showToast('已从此天移除周期排班')
+      setPickerDate(null)
+      loadSchedules()
+    } catch (err) {
+      showToast(`移除失败: ${err.message}`, 'error')
+    }
+  }
+
   // 获取当前选中日期的班次
   const getCurrentShiftForPicker = () => {
     if (!pickerDate) return null
     const entry = schedulesMap[pickerDate]
     return entry?.shift?.id || null
+  }
+
+  const isCurrentPickerCycle = () => {
+    if (!pickerDate) return false
+    const entry = schedulesMap[pickerDate]
+    return !!(entry?.isCycle && entry?.shift && !entry?.record)
   }
 
   // 保存周期
@@ -307,8 +325,10 @@ export default function HomePage() {
           date={pickerDate}
           personName={selectedPerson.name}
           colleagues={pickerColleagues}
+          isCycleShift={isCurrentPickerCycle()}
           onSelect={handleShiftSelect}
           onRemove={handleShiftRemove}
+          onRemoveCycleShift={handleRemoveCycleShift}
           onClose={() => setPickerDate(null)}
         />
       )}
