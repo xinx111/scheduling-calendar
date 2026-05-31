@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { isLightColor } from '../utils/color'
 import * as memoStore from '../db/memoStore'
-import { getColleaguesByDateAndShift } from '../db/scheduleStore'
+import { getSchedulesByDate } from '../db/scheduleStore'
 import { getPerson } from '../db/personStore'
 import { showToast } from './Toast'
 
@@ -18,21 +18,24 @@ export default function ShiftPicker({
   const [selectedId, setSelectedId] = useState(currentShiftId)
   const [colleagues, setColleagues] = useState(null)
 
-  // 打开时自动加载同班同事
+  // 打开时自动加载当天所有同班同事
   useEffect(() => {
     (async () => {
-      if (!currentShiftId || !date) { setColleagues([]); return }
+      if (!date) { setColleagues([]); return }
       try {
-        const records = await getColleaguesByDateAndShift(date, currentShiftId)
-        const persons = (await Promise.all(
-          records
-            .filter((r) => r.personId !== personId)
-            .map((r) => getPerson(r.personId))
-        )).filter(Boolean)
-        setColleagues(persons)
-      } catch { setColleagues([]) }
+        const allRecords = await getSchedulesByDate(date)
+        // 按班次分组
+        const grouped = {}
+        for (const r of allRecords) {
+          if (r.personId === personId) continue
+          if (!grouped[r.shiftId]) grouped[r.shiftId] = []
+          const p = await getPerson(r.personId)
+          if (p) grouped[r.shiftId].push(p)
+        }
+        setColleagues(grouped)
+      } catch { setColleagues(null) }
     })()
-  }, [date, currentShiftId, personId])
+  }, [date, personId])
   const [showMemo, setShowMemo] = useState(false)
   const [savedMemo, setSavedMemo] = useState(null)
   const [memoContent, setMemoContent] = useState('')
@@ -77,21 +80,31 @@ export default function ShiftPicker({
             </div>
             <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-slate-400 transition-colors">✕</button>
           </div>
-          {colleagues && colleagues.length > 0 ? (
-            <div className="flex items-center gap-1.5 mt-1.5 pt-2 border-t border-gray-50">
-              <span className="text-xs text-slate-400 flex-shrink-0">👥 同班</span>
-              <div className="flex flex-wrap gap-1">
-                {colleagues.map((c) => (
-                  <span key={c.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-gray-100 text-slate-600 font-medium">
-                    <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
-                    {c.name}
-                  </span>
-                ))}
-              </div>
+          {colleagues && Object.keys(colleagues).length > 0 ? (
+            <div className="space-y-1 mt-1.5 pt-2 border-t border-gray-50">
+              <span className="text-[11px] text-slate-400">👥 同事排班</span>
+              {Object.entries(colleagues).map(([shiftId, persons]) => {
+                const shiftObj = shifts.find((s) => s.id === shiftId)
+                return (
+                  <div key={shiftId} className="flex items-center gap-1 flex-wrap">
+                    {shiftObj && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded text-white font-medium" style={{ backgroundColor: shiftObj.color }}>
+                        {shiftObj.shortName || shiftObj.name}
+                      </span>
+                    )}
+                    {persons.map((p) => (
+                      <span key={p.id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] bg-gray-100 text-slate-600 font-medium">
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
+                        {p.name}
+                      </span>
+                    ))}
+                  </div>
+                )
+              })}
             </div>
           ) : (
             <div className="mt-1.5 pt-2 border-t border-gray-50">
-              <span className="text-xs text-slate-300">👥 当天无同班同事</span>
+              <span className="text-xs text-slate-300">👥 当天无其他同事排班</span>
             </div>
           )}
         </div>
