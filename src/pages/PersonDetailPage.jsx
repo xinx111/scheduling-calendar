@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getPerson } from '../db/personStore'
 import { getPersonSchedulesInRange } from '../db/scheduleStore'
-import { getShift } from '../db/shiftStore'
-import { getMemosInRange, addMemo, deleteMemo } from '../db/memoStore'
+import { getShift, getAllShifts } from '../db/shiftStore'
+import { getMemosInRange, addMemo, deleteMemo, markMemoDone } from '../db/memoStore'
 import { today, getWeekdayName, parseDate } from '../utils/date'
 import { showToast } from '../components/Toast'
 
@@ -67,7 +67,6 @@ export default function PersonDetailPage() {
       setTotalDays(total)
 
       // 加载所有班次（用于渲染）
-      const { getAllShifts } = await import('../db/shiftStore')
       const all = await getAllShifts()
       setAllShifts(all)
 
@@ -217,7 +216,7 @@ export default function PersonDetailPage() {
             {memos.sort((a, b) => b.createdAt - a.createdAt).map((memo) => (
               <div key={memo.id} className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-50/60">
                 <input type="checkbox" checked={memo.isDone}
-                  onChange={() => import('../db/memoStore').then((m) => m.markMemoDone(memo.id)).then(() => {
+                  onChange={() => markMemoDone(memo.id).then(() => {
                     setMemos((prev) => prev.filter((m) => m.id !== memo.id))
                   })}
                   className="mt-0.5 w-3.5 h-3.5 rounded border-gray-300 text-primary-500 focus:ring-primary-400 flex-shrink-0" />
