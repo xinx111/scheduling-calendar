@@ -55,11 +55,11 @@ export default function ShiftPicker({
         setColleagues(grouped)
       } catch { setColleagues(null) }
 
-      // 2. 加载当天备注
+      // 2. 加载当天备注（所有未完成的）
       try {
         const memos = await memoStore.getMemosByDate(date)
-        const pending = memos.find((m) => !m.isDone)
-        if (pending) setTodayMemo(pending)
+        const pending = memos.filter((m) => !m.isDone)
+        if (pending.length > 0) setTodayMemo(pending)
       } catch {}
     })()
   }, [date, personId])
@@ -111,8 +111,8 @@ export default function ShiftPicker({
           <div className="mt-1.5 pt-2 border-t border-gray-50 space-y-1.5">
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-slate-400">👥 同事排班</span>
-              {todayMemo && (
-                <span className="text-[10px] text-amber-600 font-medium">📝 我的提醒</span>
+              {todayMemo && todayMemo.length > 0 && (
+                <span className="text-[10px] text-amber-600 font-medium">📝 我的提醒 ({todayMemo.length})</span>
               )}
             </div>
             {colleagues && Object.keys(colleagues).length > 0 ? (
@@ -137,23 +137,23 @@ export default function ShiftPicker({
             ) : (
               <span className="text-[10px] text-slate-300">当天无其他同事排班</span>
             )}
-            {todayMemo && (
-              <div className="flex items-center gap-1.5 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg">
+            {todayMemo && todayMemo.length > 0 && todayMemo.map((memo) => (
+              <div key={memo.id} className="flex items-center gap-1.5 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg">
                 <span>📝</span>
-                <span className="truncate flex-1">{todayMemo.content}</span>
-                {todayMemo.remindAt && (
+                <span className="truncate flex-1">{memo.content}</span>
+                {memo.remindAt && (
                   <span className="text-amber-500 flex-shrink-0">
-                    {new Date(todayMemo.remindAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(memo.remindAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 )}
               </div>
-            )}
+            ))}
           </div>
         </div>
 
         {/* 班次网格 */}
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-5 py-3">
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-4 gap-2">
             {shifts.map((shift) => {
               const isSelected = shift.id === selectedId
               const lightBg = isSelected ? shift.color : undefined
@@ -162,20 +162,17 @@ export default function ShiftPicker({
                   key={shift.id}
                   onClick={() => setSelectedId(isSelected ? null : shift.id)}
                   className={`
-                    flex flex-col items-center justify-center gap-1 px-3 py-4 rounded-2xl
-                    transition-all duration-150 active:scale-95
-                    ${isSelected ? 'text-white shadow-md shadow-primary-200/30' : 'bg-white border border-gray-100/80 text-slate-700 hover:border-primary-200 hover:shadow-sm'}
+                    flex flex-col items-center justify-center gap-0.5 px-2 py-2.5 rounded-xl
+                    transition-all duration-150 active:scale-90
+                    ${isSelected ? 'text-white shadow-sm' : 'bg-white border border-gray-100/80 text-slate-600 hover:border-primary-200'}
                   `}
                   style={{ backgroundColor: lightBg }}
                 >
-                  <span className="text-2xl">{shift.icon}</span>
-                  <span className={`text-sm font-semibold ${isSelected ? 'text-white' : ''}`}>
-                    {shift.name}
+                  <span className="text-xl">{shift.icon}</span>
+                  <span className={`text-[11px] font-semibold ${isSelected ? 'text-white' : ''}`}>
+                    {shift.shortName || shift.name}
                   </span>
-                  <span className={`text-[10px] ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
-                    {shift.startTime ? `${shift.startTime}-${shift.endTime}` : '全天'}
-                  </span>
-                  {isSelected && <span className="text-[10px] font-bold text-white/90 mt-0.5">✓ 当前选中</span>}
+                  {isSelected && <span className="text-[8px] text-white/80">✓</span>}
                 </button>
               )
             })}
