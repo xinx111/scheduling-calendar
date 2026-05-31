@@ -11,12 +11,14 @@ export default function ShiftPicker({
   date,
   personName,
   personId,
+  isCycleShift,
   onSelect,
   onRemove,
   onClose,
 }) {
   const [selectedId, setSelectedId] = useState(currentShiftId)
   const [colleagues, setColleagues] = useState(null)
+  const hasChanged = selectedId !== currentShiftId
 
   // 打开时自动加载当天所有同班同事
   useEffect(() => {
@@ -141,14 +143,22 @@ export default function ShiftPicker({
 
         {/* 底部操作 */}
         <div className="flex-shrink-0 border-t border-gray-100 px-5 pt-3 pb-6 space-y-2.5">
-          <button
-            onClick={handleConfirm}
-            disabled={!selectedId}
-            className="w-full py-3.5 rounded-2xl text-sm font-semibold text-center btn-primary disabled:opacity-40 shadow-lg shadow-primary-200/30"
-          >
-            ✓ 确认排班
-          </button>
-          {currentShiftId && (
+          {/* 只有更改了班次时才显示确认按钮 */}
+          {hasChanged || !currentShiftId ? (
+            <button
+              onClick={handleConfirm}
+              disabled={!selectedId}
+              className="w-full py-3.5 rounded-2xl text-sm font-semibold text-center btn-primary disabled:opacity-40 shadow-lg shadow-primary-200/30"
+            >
+              {currentShiftId ? `✓ 改为${shifts.find(s => s.id === selectedId)?.name || ''}排班` : '✓ 确认排班'}
+            </button>
+          ) : (
+            <button onClick={onClose}
+              className="w-full py-3.5 rounded-2xl text-sm font-semibold text-center bg-gray-100 text-slate-600 active:scale-[0.98] transition-all">
+              已排班，点此关闭
+            </button>
+          )}
+          {currentShiftId && !isCycleShift && (
             <button onClick={() => { onRemove(); onClose() }}
               className="w-full py-3 rounded-2xl text-sm font-medium text-rose-500 bg-rose-50/80 active:bg-rose-100 transition-colors">
               移除当前排班

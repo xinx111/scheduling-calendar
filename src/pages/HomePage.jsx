@@ -145,6 +145,12 @@ export default function HomePage() {
     return entry?.shift?.id || null
   }
 
+  const isCurrentPickerCycle = () => {
+    if (!pickerDate) return false
+    const entry = schedulesMap[pickerDate]
+    return !!(entry?.isCycle && entry?.shift && !entry?.record)
+  }
+
   // 保存周期
   const handleCycleSave = async (patternData) => {
     try {
@@ -272,6 +278,7 @@ export default function HomePage() {
           date={pickerDate}
           personName={selectedPerson.name}
           personId={selectedPerson.id}
+          isCycleShift={isCurrentPickerCycle()}
           onSelect={handleShiftSelect}
           onRemove={handleShiftRemove}
           onClose={() => setPickerDate(null)}
