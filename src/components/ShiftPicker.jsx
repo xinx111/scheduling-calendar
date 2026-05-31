@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { isLightColor } from '../utils/color'
 import * as memoStore from '../db/memoStore'
+import { getColleaguesByDateAndShift } from '../db/scheduleStore'
+import { getPerson } from '../db/personStore'
 import { showToast } from './Toast'
 
 export default function ShiftPicker({
@@ -8,12 +10,29 @@ export default function ShiftPicker({
   currentShiftId,
   date,
   personName,
-  colleagues,
+  personId,
   onSelect,
   onRemove,
   onClose,
 }) {
   const [selectedId, setSelectedId] = useState(currentShiftId)
+  const [colleagues, setColleagues] = useState(null)
+
+  // 打开时自动加载同班同事
+  useEffect(() => {
+    (async () => {
+      if (!currentShiftId || !date) { setColleagues([]); return }
+      try {
+        const records = await getColleaguesByDateAndShift(date, currentShiftId)
+        const persons = (await Promise.all(
+          records
+            .filter((r) => r.personId !== personId)
+            .map((r) => getPerson(r.personId))
+        )).filter(Boolean)
+        setColleagues(persons)
+      } catch { setColleagues([]) }
+    })()
+  }, [date, currentShiftId, personId])
   const [showMemo, setShowMemo] = useState(false)
   const [savedMemo, setSavedMemo] = useState(null)
   const [memoContent, setMemoContent] = useState('')
