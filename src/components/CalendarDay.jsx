@@ -37,22 +37,32 @@ export default function CalendarDay({
       {/* 日期数字 */}
       <span
         className={`
-          flex items-center justify-center font-semibold text-slate-700
+          flex items-center justify-center font-semibold
           ${day.isToday
             ? 'bg-gradient-to-br from-primary-500 to-primary-700 text-white w-6 h-6 rounded-full shadow-sm shadow-primary-300/50 text-[11px]'
             : 'text-xs'
           }
         `}
-        style={day.isToday ? {} : { width: '24px', height: '24px' }}
+        style={
+          day.isToday
+            ? {}
+            : { width: '24px', height: '24px', color: shiftColor || undefined }
+        }
       >
         {day.day}
       </span>
 
-      {/* 班次标签 */}
-      {shift && (
+      {/* 班次标签 - 使用班次同色系文字 */}
+      {shift && shiftColor && (
         <span
-          className="text-[10px] leading-tight font-semibold mt-0.5 text-slate-700"
+          className="text-[10px] leading-tight font-semibold mt-0.5"
+          style={{ color: shiftColor }}
         >
+          {shift.shortName || shift.name}
+        </span>
+      )}
+      {shift && !shiftColor && (
+        <span className="text-[10px] leading-tight font-semibold mt-0.5 text-slate-600">
           {shift.shortName || shift.name}
         </span>
       )}
