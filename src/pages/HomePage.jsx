@@ -11,7 +11,7 @@ import { getPersonSchedulesInRange, addScheduleRecord, deleteScheduleRecord, get
 import { getShift, getAllShifts } from '../db/shiftStore'
 import { getPerson } from '../db/personStore'
 import { getMemosInRange } from '../db/memoStore'
-import { getPersonCycles, saveCyclePattern, deleteAllPersonCycles, getShiftIdFromCycle, excludeDateFromCycle } from '../db/cycleStore'
+import { getPersonCycles, saveCyclePattern, getShiftIdFromCycle } from '../db/cycleStore'
 import { showToast } from '../components/Toast'
 
 export default function HomePage() {
@@ -156,19 +156,6 @@ export default function HomePage() {
     }
   }
 
-  // 移除周期排班（将该天加入周期排除列表）
-  const handleRemoveCycleShift = async () => {
-    if (!selectedPersonId || !pickerDate) return
-    try {
-      await excludeDateFromCycle(selectedPersonId, pickerDate)
-      showToast('已从此天移除周期排班')
-      setPickerDate(null)
-      loadSchedules()
-    } catch (err) {
-      showToast(`移除失败: ${err.message}`, 'error')
-    }
-  }
-
   // 获取当前选中日期的班次
   const getCurrentShiftForPicker = () => {
     if (!pickerDate) return null
@@ -176,33 +163,14 @@ export default function HomePage() {
     return entry?.shift?.id || null
   }
 
-  const isCurrentPickerCycle = () => {
-    if (!pickerDate) return false
-    const entry = schedulesMap[pickerDate]
-    return !!(entry?.isCycle && entry?.shift && !entry?.record)
-  }
-
   // 保存周期
   const handleCycleSave = async (patternData) => {
     try {
       await saveCyclePattern(patternData)
-      showToast('周期已保存，将自动填充排班')
-      setCycleDialogOpen(false)
+      showToast('周期已保存')
       loadSchedules()
     } catch (err) {
-      showToast(`保存周期失败: ${err.message}`, 'error')
-    }
-  }
-
-  // 删除所有周期
-  const handleCycleDelete = async (personId) => {
-    if (!window.confirm('确定删除该人员所有排班周期？')) return
-    try {
-      await deleteAllPersonCycles(personId)
-      showToast('所有周期已删除')
-      loadSchedules()
-    } catch (err) {
-      showToast(`删除周期失败: ${err.message}`, 'error')
+      showToast(`保存失败: ${err.message}`, 'error')
     }
   }
 
@@ -322,10 +290,8 @@ export default function HomePage() {
           date={pickerDate}
           personName={selectedPerson.name}
           colleagues={pickerColleagues}
-          isCycleShift={isCurrentPickerCycle()}
           onSelect={handleShiftSelect}
           onRemove={handleShiftRemove}
-          onRemoveCycleShift={handleRemoveCycleShift}
           onClose={() => setPickerDate(null)}
         />
       )}
@@ -335,10 +301,8 @@ export default function HomePage() {
         <CycleDialog
           personId={selectedPerson.id}
           personName={selectedPerson.name}
-          existingPattern={null}
           onSave={handleCycleSave}
-          onDelete={handleCycleDelete}
-          onClose={() => setCycleDialogOpen(false)}
+          onClose={() => { setCycleDialogOpen(false); loadSchedules() }}
         />
       )}
     </div>

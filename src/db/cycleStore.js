@@ -124,19 +124,3 @@ export function getShiftIdFromCycle(cycles, dateStr) {
   return entry ? entry.shiftId || null : null
 }
 
-/**
- * 将某天加入周期排除列表
- */
-export async function excludeDateFromCycle(personId, dateStr) {
-  const cycles = await getPersonCycles(personId)
-  const cycle = findApplicableCycle(cycles, dateStr)
-  if (!cycle) return
-  const excluded = cycle.excludedDates || []
-  if (!excluded.includes(dateStr)) {
-    excluded.push(dateStr)
-    cycle.excludedDates = excluded
-    cycle.updatedAt = Date.now()
-    const db = await getDB()
-    await db.put('cyclePatterns', cycle)
-  }
-}

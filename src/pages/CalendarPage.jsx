@@ -10,7 +10,7 @@ import { getPerson } from '../db/personStore'
 import { getShift, getAllShifts } from '../db/shiftStore'
 import { getMemosInRange } from '../db/memoStore'
 import { today as getToday, getDaysInMonth } from '../utils/date'
-import { getPersonCycles, getShiftIdFromCycle, excludeDateFromCycle } from '../db/cycleStore'
+import { getPersonCycles, getShiftIdFromCycle } from '../db/cycleStore'
 import { showToast } from '../components/Toast'
 
 export default function CalendarPage() {
@@ -146,24 +146,6 @@ export default function CalendarPage() {
     return entry?.shift?.id || null
   }
 
-  const isCurrentPickerCycle = () => {
-    if (!pickerDate) return false
-    const entry = schedulesMap[pickerDate]
-    return !!(entry?.isCycle && entry?.shift && !entry?.record)
-  }
-
-  const handleRemoveCycleShift = async () => {
-    if (!selectedPersonId || !pickerDate) return
-    try {
-      await excludeDateFromCycle(selectedPersonId, pickerDate)
-      showToast('已从此天移除周期排班')
-      setPickerDate(null)
-      loadSchedules()
-    } catch (err) {
-      showToast(`移除失败: ${err.message}`, 'error')
-    }
-  }
-
   const selectedPerson = activePersons.find(p => p.id === selectedPersonId)
   const today = getToday()
 
@@ -220,9 +202,7 @@ export default function CalendarPage() {
           date={pickerDate}
           personName={selectedPerson.name}
           colleagues={pickerColleagues}
-          isCycleShift={isCurrentPickerCycle()}
           onSelect={handleShiftSelect}
-          onRemoveCycleShift={handleRemoveCycleShift}
           onRemove={handleShiftRemove}
           onClose={() => setPickerDate(null)}
         />

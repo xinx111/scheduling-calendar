@@ -9,10 +9,8 @@ export default function ShiftPicker({
   date,
   personName,
   colleagues,
-  isCycleShift,
   onSelect,
   onRemove,
-  onRemoveCycleShift,
   onClose,
 }) {
   const [selectedId, setSelectedId] = useState(currentShiftId)
@@ -122,12 +120,6 @@ export default function ShiftPicker({
             <button onClick={() => { onRemove(); onClose() }}
               className="w-full py-3 rounded-2xl text-sm font-medium text-rose-500 bg-rose-50/80 active:bg-rose-100 transition-colors">
               移除当前排班
-            </button>
-          )}
-          {isCycleShift && (
-            <button onClick={() => { onRemoveCycleShift && onRemoveCycleShift(); onClose() }}
-              className="w-full py-3 rounded-2xl text-sm font-medium text-orange-500 bg-orange-50/80 active:bg-orange-100 transition-colors">
-              🗑️ 从此天移除周期排班
             </button>
           )}
           {!showMemo && !savedMemo && (
