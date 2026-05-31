@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getAllShifts, addShift, deleteShift } from '../db/shiftStore'
+import { getAllShifts, addShift, deleteShift, updateShift } from '../db/shiftStore'
 import { getDB, resetDB } from '../db/index'
 import { showToast } from '../components/Toast'
 
@@ -24,6 +24,9 @@ export default function SettingsPage() {
     color: '#6366F1',
     icon: '📋',
   })
+
+  // 编辑班次状态
+  const [editingShift, setEditingShift] = useState(null)
 
   // 预置颜色选项
   const colorOptions = [
@@ -92,6 +95,37 @@ export default function SettingsPage() {
       showToast('排班数据已清除')
     } catch (err) {
       showToast('清除失败: ' + err.message, 'error')
+    }
+  }
+
+  const handleEditShift = (shift) => {
+    setEditingShift({
+      id: shift.id,
+      name: shift.name,
+      shortName: shift.shortName || '',
+      startTime: shift.startTime || '09:00',
+      endTime: shift.endTime || '18:00',
+      color: shift.color || '#6366F1',
+      icon: shift.icon || '📋',
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingShift.name.trim()) return
+    try {
+      await updateShift(editingShift.id, {
+        name: editingShift.name.trim(),
+        shortName: editingShift.shortName || editingShift.name.charAt(0),
+        startTime: editingShift.startTime,
+        endTime: editingShift.endTime,
+        color: editingShift.color,
+        icon: editingShift.icon,
+      })
+      showToast(`已更新「${editingShift.name.trim()}」`)
+      setEditingShift(null)
+      loadShifts()
+    } catch (err) {
+      showToast('更新失败: ' + err.message, 'error')
     }
   }
 
@@ -167,7 +201,8 @@ export default function SettingsPage() {
           <div className="space-y-1.5">
             {shifts.map((shift) => (
               <div key={shift.id}
-                className="flex items-center gap-3 p-3.5 rounded-xl border border-transparent hover:border-gray-100 transition-colors"
+                onClick={() => handleEditShift(shift)}
+                className="flex items-center gap-3 p-3.5 rounded-xl border border-transparent hover:border-gray-100 active:scale-[0.99] transition-all cursor-pointer"
                 style={{ backgroundColor: hexToRgba(shift.color) }}>
                 <span className="text-lg">{shift.icon}</span>
                 <div className="flex-1 min-w-0">
@@ -181,8 +216,12 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 <span className="w-4 h-4 rounded-full flex-shrink-0 ring-1 ring-white/50" style={{ backgroundColor: shift.color }} />
-                <button onClick={() => handleDeleteShift(shift)}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-xs text-rose-400 hover:bg-rose-50 transition-colors flex-shrink-0">✕</button>
+                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                  <button onClick={() => handleEditShift(shift)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-xs text-primary-400 hover:bg-primary-50 transition-colors flex-shrink-0">✎</button>
+                  <button onClick={() => handleDeleteShift(shift)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-xs text-rose-400 hover:bg-rose-50 transition-colors flex-shrink-0">✕</button>
+                </div>
               </div>
             ))}
           </div>
@@ -219,6 +258,71 @@ export default function SettingsPage() {
         <h3 className="text-sm font-bold text-slate-700">排班日历</h3>
         <p className="text-xs text-slate-400 mt-0.5">v1.0.0 · 简洁 · 高效</p>
       </div>
+
+      {/* 编辑班次弹窗 */}
+      {editingShift && (
+        <div className="modal-backdrop animate-fade-in" onClick={() => setEditingShift(null)}>
+          <div className="absolute bottom-14 left-0 right-0 bg-white rounded-t-3xl shadow-2xl flex flex-col animate-slide-up max-h-[65vh]"
+            onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="w-10 h-1 rounded-full bg-gray-300/60" />
+            </div>
+            <div className="flex-shrink-0 border-b border-gray-100 px-5 py-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-slate-700">✏️ 编辑班次</h3>
+                <button onClick={() => setEditingShift(null)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-slate-400 transition-colors">✕</button>
+              </div>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-3">
+              <div>
+                <label className="text-xs font-medium text-slate-500 mb-1.5 block">班次名称</label>
+                <input type="text" value={editingShift.name}
+                  onChange={(e) => setEditingShift({ ...editingShift, name: e.target.value })}
+                  className="input-field" autoFocus />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-slate-500 mb-1.5 block">简称</label>
+                <input type="text" value={editingShift.shortName}
+                  onChange={(e) => setEditingShift({ ...editingShift, shortName: e.target.value })}
+                  className="input-field" />
+              </div>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <label className="text-xs text-slate-400 block mb-1.5">开始</label>
+                  <input type="time" value={editingShift.startTime}
+                    onChange={(e) => setEditingShift({ ...editingShift, startTime: e.target.value })}
+                    className="input-field" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-xs text-slate-400 block mb-1.5">结束</label>
+                  <input type="time" value={editingShift.endTime}
+                    onChange={(e) => setEditingShift({ ...editingShift, endTime: e.target.value })}
+                    className="input-field" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 block mb-1.5">颜色</label>
+                <div className="flex gap-2 flex-wrap">
+                  {colorOptions.map((c) => (
+                    <button key={c} onClick={() => setEditingShift({ ...editingShift, color: c })}
+                      className={`w-8 h-8 rounded-xl transition-all ${editingShift.color === c ? 'ring-2 ring-primary-500 ring-offset-2 scale-110' : 'hover:scale-105'}`}
+                      style={{ backgroundColor: c }} />
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex-shrink-0 border-t border-gray-100 px-5 py-4">
+              <div className="flex gap-3">
+                <button onClick={handleSaveEdit} disabled={!editingShift.name.trim()}
+                  className="flex-1 btn-primary text-sm py-3 text-center disabled:opacity-50 shadow-lg shadow-primary-200/30">✓ 保存修改</button>
+                <button onClick={() => setEditingShift(null)}
+                  className="btn-secondary text-sm py-3 flex-1 text-center">取消</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
