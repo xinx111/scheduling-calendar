@@ -4,7 +4,8 @@ import { getPerson } from '../db/personStore'
 import { getPersonSchedulesInRange } from '../db/scheduleStore'
 import { getShift, getAllShifts } from '../db/shiftStore'
 import { getMemosInRangeByPerson, addMemo, deleteMemo, markMemoDone } from '../db/memoStore'
-import { today, getWeekdayName, parseDate } from '../utils/date'
+import { getPersonCycles, getShiftIdFromCycle } from '../db/cycleStore'
+import { today, getWeekdayName, parseDate, getDaysInMonth } from '../utils/date'
 import { showToast } from '../components/Toast'
 
 export default function PersonDetailPage() {
@@ -20,10 +21,11 @@ export default function PersonDetailPage() {
   })
   const [memos, setMemos] = useState([])
   const [allShifts, setAllShifts] = useState([])
-  // 添加备注
   const [showMemoInput, setShowMemoInput] = useState(false)
   const [memoContent, setMemoContent] = useState('')
   const [memoTime, setMemoTime] = useState('')
+
+  const daysInMonth = new Date(currentMonth.year, currentMonth.month, 0).getDate()
 
   const goToPrevMonth = () => {
     setCurrentMonth((prev) => {
@@ -50,27 +52,38 @@ export default function PersonDetailPage() {
       const lastDay = new Date(currentMonth.year, currentMonth.month, 0).getDate()
       const endDate = `${currentMonth.year}-${String(currentMonth.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
 
-      // 加载排班记录
+      // 排班记录 + 周期统计
       const records = await getPersonSchedulesInRange(personId, startDate, endDate)
+      const cycles = await getPersonCycles(personId)
       const shiftCount = {}
       let total = 0
       const shiftMap = {}
+      const dateSet = new Set()
       for (const r of records) {
+        dateSet.add(r.date)
         if (!shiftMap[r.shiftId]) shiftMap[r.shiftId] = await getShift(r.shiftId)
         const s = shiftMap[r.shiftId]
-        if (s) {
-          shiftCount[s.name] = (shiftCount[s.name] || 0) + 1
-          total++
+        if (s) { shiftCount[s.name] = (shiftCount[s.name] || 0) + 1; total++ }
+      }
+      if (cycles.length > 0) {
+        for (let d = 1; d <= daysInMonth; d++) {
+          const ds = `${currentMonth.year}-${String(currentMonth.month).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+          if (!dateSet.has(ds)) {
+            const sid = getShiftIdFromCycle(cycles, ds)
+            if (sid) {
+              if (!shiftMap[sid]) shiftMap[sid] = await getShift(sid)
+              const s = shiftMap[sid]
+              if (s) { shiftCount[s.name] = (shiftCount[s.name] || 0) + 1; total++ }
+            }
+          }
         }
       }
       setStats(shiftCount)
       setTotalDays(total)
 
-      // 加载所有班次（用于渲染）
       const all = await getAllShifts()
       setAllShifts(all)
 
-      // 加载备注
       const memos = await getMemosInRangeByPerson(startDate, endDate, personId)
       setMemos(memos)
       setLoading(false)
@@ -89,7 +102,6 @@ export default function PersonDetailPage() {
       setMemoTime('')
       setShowMemoInput(false)
 
-      // 刷新备注
       const startDate = `${currentMonth.year}-${String(currentMonth.month).padStart(2, '0')}-01`
       const lastDay = new Date(currentMonth.year, currentMonth.month, 0).getDate()
       const endDate = `${currentMonth.year}-${String(currentMonth.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
@@ -124,7 +136,6 @@ export default function PersonDetailPage() {
 
   return (
     <div className="space-y-3.5 animate-fade-in">
-      {/* 返回 + 标题 */}
       <div className="flex items-center gap-3 card !p-3">
         <button onClick={() => navigate(-1)}
           className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 active:scale-90 transition-all text-slate-500">
@@ -142,7 +153,6 @@ export default function PersonDetailPage() {
         </div>
       </div>
 
-      {/* 月统计 */}
       <div className="card">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1.5">
@@ -156,7 +166,6 @@ export default function PersonDetailPage() {
           </div>
         </div>
 
-        {/* 统计卡片 */}
         <div className="grid grid-cols-3 gap-2">
           {allShifts.map((s) => {
             const count = stats[s.name] || 0
@@ -176,10 +185,9 @@ export default function PersonDetailPage() {
             )
           })}
         </div>
-        <p className="text-xs text-slate-400 mt-2 text-center">本月共 {totalDays} 天排班 · 出勤率 {Math.round((totalDays / 30) * 100)}%</p>
+        <p className="text-xs text-slate-400 mt-2 text-center">本月共 {totalDays} 天排班 · 出勤率 {Math.round((totalDays / daysInMonth) * 100)}%</p>
       </div>
 
-      {/* 最近备注 */}
       <div className="card">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-1.5">

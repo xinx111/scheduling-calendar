@@ -74,13 +74,18 @@ export default function UploadPage() {
     setError(null)
 
     try {
+      const apiKey = import.meta.env.VITE_ZHIPU_API_KEY
+      if (!apiKey) {
+        throw new Error('未配置 API Key，请在项目 .env 文件中设置 VITE_ZHIPU_API_KEY')
+      }
+
       // 调用智谱 API
       const response = await fetch(
         'https://open.bigmodel.cn/api/paas/v4/chat/completions',
         {
           method: 'POST',
           headers: {
-            Authorization: `Bearer ${import.meta.env.VITE_ZHIPU_API_KEY}`,
+            Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({

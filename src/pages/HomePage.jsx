@@ -101,7 +101,7 @@ export default function HomePage() {
   }, [loadSchedules])
 
   // 点击日期
-  const handleDateClick = async (date) => {
+  const handleDateClick = (date) => {
     if (!selectedPersonId) {
       navigate(`/day/${date}`)
       return

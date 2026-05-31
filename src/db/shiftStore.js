@@ -57,7 +57,7 @@ export async function updateShift(id, updates) {
 }
 
 /**
- * 删除自定义班次（不能删除预置班次）
+ * 删除班次（同时清理排班记录和周期中的引用）
  */
 export async function deleteShift(id) {
   const db = await getDB()
@@ -66,9 +66,9 @@ export async function deleteShift(id) {
 
   await db.delete('shiftTemplates', id)
 
-  // 同时将使用该班次的排班记录置空
-  const index = db.transaction('scheduleRecords').store.index('shiftId')
-  const records = await index.getAll(id)
+  // 将使用该班次的排班记录置空
+  const schedIndex = db.transaction('scheduleRecords').store.index('shiftId')
+  const records = await schedIndex.getAll(id)
   if (records.length > 0) {
     const tx = db.transaction('scheduleRecords', 'readwrite')
     for (const record of records) {
@@ -76,5 +76,21 @@ export async function deleteShift(id) {
       await tx.store.put(record)
     }
     await tx.done
+  }
+
+  // 将周期中引用了该班次的 pattern 条目置空
+  const allCycles = await db.getAll('cyclePatterns')
+  for (const cycle of allCycles) {
+    let changed = false
+    for (const p of cycle.pattern) {
+      if (p.shiftId === id) {
+        p.shiftId = ''
+        changed = true
+      }
+    }
+    if (changed) {
+      cycle.updatedAt = Date.now()
+      await db.put('cyclePatterns', cycle)
+    }
   }
 }
