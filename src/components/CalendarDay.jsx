@@ -1,4 +1,3 @@
-import { isLightColor } from '../utils/color'
 import { getWeekdayName } from '../utils/date'
 
 export default function CalendarDay({
@@ -13,7 +12,6 @@ export default function CalendarDay({
     getWeekdayName(day.date) === '六' || getWeekdayName(day.date) === '日'
 
   const shiftColor = shift?.color || null
-  const isBgLight = shiftColor ? isLightColor(shiftColor) : true
 
   return (
     <button
@@ -32,18 +30,16 @@ export default function CalendarDay({
       `}
       style={
         shiftColor && day.isCurrentMonth
-          ? { backgroundColor: `${shiftColor}22`, borderLeft: `3px solid ${shiftColor}` }
+          ? { backgroundColor: `${shiftColor}33`, borderLeft: `3px solid ${shiftColor}` }
           : {}
       }
     >
       {/* 日期数字 */}
       <span
         className={`
-          flex items-center justify-center font-semibold
+          flex items-center justify-center font-semibold text-slate-700
           ${day.isToday
             ? 'bg-gradient-to-br from-primary-500 to-primary-700 text-white w-6 h-6 rounded-full shadow-sm shadow-primary-300/50 text-[11px]'
-            : isWeekend && !shiftColor
-            ? 'text-rose-400 text-xs'
             : 'text-xs'
           }
         `}
@@ -52,11 +48,10 @@ export default function CalendarDay({
         {day.day}
       </span>
 
-      {/* 班次标签 - 简洁显示 */}
+      {/* 班次标签 */}
       {shift && (
         <span
-          className="text-[10px] leading-tight font-semibold mt-0.5"
-          style={{ color: isBgLight ? shiftColor : 'white' }}
+          className="text-[10px] leading-tight font-semibold mt-0.5 text-slate-700"
         >
           {shift.shortName || shift.name}
         </span>
