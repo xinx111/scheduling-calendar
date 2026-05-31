@@ -58,7 +58,7 @@ export default function ShiftPicker({
       // 2. 加载当天备注（所有未完成的）
       try {
         const memos = await memoStore.getMemosByDate(date)
-        const pending = memos.filter((m) => !m.isDone)
+        const pending = memos.filter((m) => !m.isDone && (!m.personId || m.personId === personId))
         if (pending.length > 0) setTodayMemo(pending)
       } catch {}
     })()
