@@ -63,9 +63,6 @@ export async function deleteShift(id) {
   const db = await getDB()
   const shift = await db.get('shiftTemplates', id)
   if (!shift) throw new Error(`Shift not found: ${id}`)
-  if (shift.isDefault) {
-    throw new Error('Cannot delete default shift')
-  }
 
   await db.delete('shiftTemplates', id)
 
