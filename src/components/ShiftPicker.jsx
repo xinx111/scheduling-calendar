@@ -41,7 +41,7 @@ export default function ShiftPicker({
   return (
     <div className="modal-backdrop animate-fade-in" onClick={onClose}>
       <div
-        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl flex flex-col animate-slide-up max-h-[85vh]"
+        className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl flex flex-col animate-slide-up max-h-[70vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 拖拽指示条 */}

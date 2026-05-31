@@ -36,7 +36,7 @@ export default function CycleDialog({
   return (
     <div className="modal-backdrop animate-fade-in" onClick={onClose}>
       <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl flex flex-col animate-slide-up"
-        style={{ maxHeight: '80vh' }} onClick={(e) => e.stopPropagation()}>
+        style={{ maxHeight: '65vh' }} onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
           <div className="w-10 h-1 rounded-full bg-gray-300/60" />
         </div>
