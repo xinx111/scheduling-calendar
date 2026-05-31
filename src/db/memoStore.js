@@ -49,6 +49,7 @@ export async function addMemo(data) {
     id: generateId(),
     date: data.date,
     content: data.content,
+    personId: data.personId || null,
     remindAt: data.remindAt || null,
     isAlarm: data.isAlarm || false,
     isDone: false,
@@ -57,6 +58,14 @@ export async function addMemo(data) {
   }
   await db.put('memos', memo)
   return memo
+}
+
+/**
+ * 获取某人在某个日期范围内的备忘录
+ */
+export async function getMemosInRangeByPerson(startDate, endDate, personId) {
+  const all = await getMemosInRange(startDate, endDate)
+  return all.filter((m) => !m.personId || m.personId === personId)
 }
 
 /**

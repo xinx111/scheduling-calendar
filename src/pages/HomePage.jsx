@@ -9,7 +9,7 @@ import CycleDialog from '../components/CycleDialog'
 import { getWeekRange, today as getToday, getDaysInMonth } from '../utils/date'
 import { getPersonSchedulesInRange, addScheduleRecord, deleteScheduleRecord } from '../db/scheduleStore'
 import { getShift, getAllShifts } from '../db/shiftStore'
-import { getMemosInRange } from '../db/memoStore'
+import { getMemosInRangeByPerson } from '../db/memoStore'
 import { getPersonCycles, saveCyclePattern, getShiftIdFromCycle } from '../db/cycleStore'
 import { showToast } from '../components/Toast'
 
@@ -82,7 +82,7 @@ export default function HomePage() {
     }
 
     // 加载整月备注标记
-    const memos = await getMemosInRange(startDate, endDate)
+    const memos = await getMemosInRangeByPerson(startDate, endDate, selectedPersonId)
     const memoDateSet = new Set(memos.map((m) => m.date))
     for (const date of memoDateSet) {
       if (!map[date]) {

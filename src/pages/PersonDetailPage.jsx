@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getPerson } from '../db/personStore'
 import { getPersonSchedulesInRange } from '../db/scheduleStore'
 import { getShift, getAllShifts } from '../db/shiftStore'
-import { getMemosInRange, addMemo, deleteMemo, markMemoDone } from '../db/memoStore'
+import { getMemosInRangeByPerson, addMemo, deleteMemo, markMemoDone } from '../db/memoStore'
 import { today, getWeekdayName, parseDate } from '../utils/date'
 import { showToast } from '../components/Toast'
 
@@ -71,7 +71,7 @@ export default function PersonDetailPage() {
       setAllShifts(all)
 
       // 加载备注
-      const memos = await getMemosInRange(startDate, endDate)
+      const memos = await getMemosInRangeByPerson(startDate, endDate, personId)
       setMemos(memos)
       setLoading(false)
     }
@@ -83,7 +83,7 @@ export default function PersonDetailPage() {
     try {
       let remindAt = null
       if (memoTime) remindAt = new Date(`${today()}T${memoTime}:00`).getTime()
-      await addMemo({ date: today(), content: memoContent.trim(), remindAt, isAlarm: !!memoTime })
+      await addMemo({ date: today(), content: memoContent.trim(), remindAt, isAlarm: !!memoTime, personId })
       showToast('备注已添加')
       setMemoContent('')
       setMemoTime('')
@@ -93,7 +93,7 @@ export default function PersonDetailPage() {
       const startDate = `${currentMonth.year}-${String(currentMonth.month).padStart(2, '0')}-01`
       const lastDay = new Date(currentMonth.year, currentMonth.month, 0).getDate()
       const endDate = `${currentMonth.year}-${String(currentMonth.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
-      const memos = await getMemosInRange(startDate, endDate)
+      const memos = await getMemosInRangeByPerson(startDate, endDate, personId)
       setMemos(memos)
     } catch (err) {
       showToast('添加失败: ' + err.message, 'error')

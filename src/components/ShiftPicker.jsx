@@ -78,7 +78,7 @@ export default function ShiftPicker({
     let remindAt = null
     if (memoTime) remindAt = new Date(`${date}T${memoTime}:00`).getTime()
     try {
-      const memo = await memoStore.addMemo({ date, content: memoContent.trim(), remindAt, isAlarm: !!memoTime })
+      const memo = await memoStore.addMemo({ date, content: memoContent.trim(), remindAt, isAlarm: !!memoTime, personId })
       setSavedMemo(memo)
       setShowMemo(false)
       window.dispatchEvent(new CustomEvent('memo-changed'))
