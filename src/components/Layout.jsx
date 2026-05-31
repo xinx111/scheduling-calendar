@@ -1,9 +1,7 @@
-import { Outlet, NavLink, useLocation } from 'react-router-dom'
+import { Outlet, NavLink } from 'react-router-dom'
 import { NAV_ITEMS } from '../constants'
 
 export default function Layout() {
-  const location = useLocation()
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100/60">
       {/* 顶部导航栏 */}

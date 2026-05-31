@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { isLightColor } from '../utils/color'
 import * as memoStore from '../db/memoStore'
 import { getSchedulesByDate } from '../db/scheduleStore'
 import { getPerson, getActivePersons } from '../db/personStore'
@@ -19,32 +18,25 @@ export default function ShiftPicker({
 }) {
   const [selectedId, setSelectedId] = useState(currentShiftId)
   const [colleagues, setColleagues] = useState(null)
+  const [todayMemo, setTodayMemo] = useState(null)
   const hasChanged = selectedId !== currentShiftId
 
-  // 打开时自动加载当天所有同班同事（手动排班 + 周期排班）
+  // 打开时自动加载当天数据
   useEffect(() => {
     (async () => {
-      if (!date) { setColleagues([]); return }
+      if (!date) return
+      // 1. 加载同事
       try {
-        // 1. 获取手动排班记录
         const allRecords = await getSchedulesByDate(date)
-        // 2. 获取所有人的周期模式
         const allCycles = await getAllCyclePatterns()
-        // 3. 获取所有人
         const allPersons = await getActivePersons()
-
-        // 按 shiftId 分组 { shiftId: [person, ...] }
         const grouped = {}
-
-        // 处理手动排班
         for (const r of allRecords) {
           if (r.personId === personId) continue
           if (!grouped[r.shiftId]) grouped[r.shiftId] = []
           const p = allPersons.find((ap) => ap.id === r.personId) || await getPerson(r.personId)
           if (p && !grouped[r.shiftId].some((gp) => gp.id === p.id)) grouped[r.shiftId].push(p)
         }
-
-        // 处理周期排班：对每个有周期的人，计算当天应该是什么班次
         const personCycles = {}
         for (const c of allCycles) {
           if (!personCycles[c.personId]) personCycles[c.personId] = []
@@ -59,9 +51,15 @@ export default function ShiftPicker({
             if (p && !grouped[shiftId].some((gp) => gp.id === p.id)) grouped[shiftId].push(p)
           }
         }
-
         setColleagues(grouped)
       } catch { setColleagues(null) }
+
+      // 2. 加载当天备注
+      try {
+        const memos = await memoStore.getMemosByDate(date)
+        const pending = memos.find((m) => !m.isDone)
+        if (pending) setTodayMemo(pending)
+      } catch {}
     })()
   }, [date, personId])
   const [showMemo, setShowMemo] = useState(false)
@@ -108,10 +106,16 @@ export default function ShiftPicker({
             </div>
             <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-slate-400 transition-colors">✕</button>
           </div>
-          {colleagues && Object.keys(colleagues).length > 0 ? (
-            <div className="space-y-1 mt-1.5 pt-2 border-t border-gray-50">
+          {/* 同事排班 + 我的备注 */}
+          <div className="mt-1.5 pt-2 border-t border-gray-50 space-y-1.5">
+            <div className="flex items-center justify-between">
               <span className="text-[11px] text-slate-400">👥 同事排班</span>
-              {Object.entries(colleagues).map(([shiftId, persons]) => {
+              {todayMemo && (
+                <span className="text-[10px] text-amber-600 font-medium">📝 我的提醒</span>
+              )}
+            </div>
+            {colleagues && Object.keys(colleagues).length > 0 ? (
+              Object.entries(colleagues).map(([shiftId, persons]) => {
                 const shiftObj = shifts.find((s) => s.id === shiftId)
                 return (
                   <div key={shiftId} className="flex items-center gap-1 flex-wrap">
@@ -128,43 +132,53 @@ export default function ShiftPicker({
                     ))}
                   </div>
                 )
-              })}
-            </div>
-          ) : (
-            <div className="mt-1.5 pt-2 border-t border-gray-50">
-              <span className="text-xs text-slate-300">👥 当天无其他同事排班</span>
-            </div>
-          )}
+              })
+            ) : (
+              <span className="text-[10px] text-slate-300">当天无其他同事排班</span>
+            )}
+            {todayMemo && (
+              <div className="flex items-center gap-1.5 text-[10px] text-amber-700 bg-amber-50 px-2 py-1 rounded-lg">
+                <span>📝</span>
+                <span className="truncate flex-1">{todayMemo.content}</span>
+                {todayMemo.remindAt && (
+                  <span className="text-amber-500 flex-shrink-0">
+                    {new Date(todayMemo.remindAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* 班次列表 */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-3 space-y-2">
-          {shifts.map((shift) => {
-            const isSelected = shift.id === selectedId
-            const textColor = isLightColor(shift.color) ? 'text-gray-800' : 'text-white'
-            return (
-              <button
-                key={shift.id}
-                onClick={() => setSelectedId(isSelected ? null : shift.id)}
-                className={`
-                  w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-150 active:scale-[0.98]
-                  ${isSelected ? 'shadow-md shadow-primary-200/30' : 'hover:bg-gray-50 border border-gray-100/80'}
-                `}
-                style={{ backgroundColor: isSelected ? shift.color : undefined, border: isSelected ? 'none' : undefined }}
-              >
-                <span className={`text-xl ${isSelected ? textColor : ''}`}>{shift.icon}</span>
-                <div className="flex-1 text-left">
-                  <p className={`text-sm font-semibold ${isSelected ? textColor : 'text-slate-700'}`}>
-                    {shift.name} {isSelected && '✓'}
-                  </p>
-                  <p className={`text-xs ${isSelected ? `${textColor} opacity-80` : 'text-slate-400'}`}>
-                    {shift.startTime ? `${shift.startTime} - ${shift.endTime}` : '全天'}
-                  </p>
-                </div>
-                {!isSelected && <span className="w-3.5 h-3.5 rounded-full flex-shrink-0 ring-1 ring-gray-200" style={{ backgroundColor: shift.color }} />}
-              </button>
-            )
-          })}
+        {/* 班次网格 */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-3">
+          <div className="grid grid-cols-2 gap-2.5">
+            {shifts.map((shift) => {
+              const isSelected = shift.id === selectedId
+              const lightBg = isSelected ? shift.color : undefined
+              return (
+                <button
+                  key={shift.id}
+                  onClick={() => setSelectedId(isSelected ? null : shift.id)}
+                  className={`
+                    flex flex-col items-center justify-center gap-1 px-3 py-4 rounded-2xl
+                    transition-all duration-150 active:scale-95
+                    ${isSelected ? 'text-white shadow-md shadow-primary-200/30' : 'bg-white border border-gray-100/80 text-slate-700 hover:border-primary-200 hover:shadow-sm'}
+                  `}
+                  style={{ backgroundColor: lightBg }}
+                >
+                  <span className="text-2xl">{shift.icon}</span>
+                  <span className={`text-sm font-semibold ${isSelected ? 'text-white' : ''}`}>
+                    {shift.name}
+                  </span>
+                  <span className={`text-[10px] ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
+                    {shift.startTime ? `${shift.startTime}-${shift.endTime}` : '全天'}
+                  </span>
+                  {isSelected && <span className="text-[10px] font-bold text-white/90 mt-0.5">✓ 当前选中</span>}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* 底部操作 */}

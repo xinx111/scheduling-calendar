@@ -176,8 +176,15 @@ export default function HomePage() {
     <div className="space-y-3.5 animate-fade-in">
       {/* 日历卡片 */}
       <div className="card overflow-hidden">
-        {/* 月份导航 + 人员 */}
-        <div className="flex items-center justify-between mb-3">
+        {/* 人员选择 */}
+        <PersonSelector
+          persons={activePersons}
+          selectedId={selectedPersonId}
+          onSelect={setSelectedPersonId}
+        />
+
+        {/* 月份导航 */}
+        <div className="flex items-center justify-between mt-2 mb-3">
           <div className="flex items-center gap-1.5">
             <button
               onClick={calendar.goToPrevMonth}
@@ -202,13 +209,6 @@ export default function HomePage() {
             今天
           </button>
         </div>
-
-        {/* 人员选择 */}
-        <PersonSelector
-          persons={activePersons}
-          selectedId={selectedPersonId}
-          onSelect={setSelectedPersonId}
-        />
 
         {/* 周期指示条 */}
         {currentCycles.length > 0 && selectedPersonId && (
