@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import * as memoStore from '../db/memoStore'
 import { getSchedulesByDate } from '../db/scheduleStore'
 import { getPerson, getActivePersons } from '../db/personStore'
@@ -20,6 +20,7 @@ export default function ShiftPicker({
   const [colleagues, setColleagues] = useState(null)
   const [todayMemo, setTodayMemo] = useState(null)
   const hasChanged = selectedId !== currentShiftId
+  const scrollRef = useRef(null)
 
   // 打开时自动加载当天数据
   useEffect(() => {
@@ -151,7 +152,7 @@ export default function ShiftPicker({
         </div>
 
         {/* 班次网格 */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-5 py-3">
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-5 py-3">
           <div className="grid grid-cols-2 gap-2.5">
             {shifts.map((shift) => {
               const isSelected = shift.id === selectedId
@@ -205,7 +206,7 @@ export default function ShiftPicker({
             </button>
           )}
           {!showMemo && !savedMemo && (
-            <button onClick={() => setShowMemo(true)}
+            <button onClick={() => { setShowMemo(true); setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }), 350) }}
               className="w-full py-2.5 rounded-2xl text-sm font-medium text-amber-600 bg-amber-50/60 active:bg-amber-100 transition-colors">
               📝 添加备注与提醒
             </button>
