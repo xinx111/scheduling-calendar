@@ -10,7 +10,7 @@ import { getPerson } from '../db/personStore'
 import { getShift, getAllShifts } from '../db/shiftStore'
 import { getMemosInRange } from '../db/memoStore'
 import { today as getToday, getDaysInMonth } from '../utils/date'
-import { getCyclePattern, getShiftIdFromCycle, excludeDateFromCycle } from '../db/cycleStore'
+import { getPersonCycles, getShiftIdFromCycle, excludeDateFromCycle } from '../db/cycleStore'
 import { showToast } from '../components/Toast'
 
 export default function CalendarPage() {
@@ -54,14 +54,14 @@ export default function CalendarPage() {
       map[record.date] = { record, shift, hasMemo: false }
     }
 
-    // 加载周期模式并填充未排班日期
-    const cyclePattern = await getCyclePattern(selectedPersonId)
-    if (cyclePattern) {
+    // 加载周期模式并填充未排班日期（支持多周期）
+    const cycles = await getPersonCycles(selectedPersonId)
+    if (cycles.length > 0) {
       const daysInMonth = getDaysInMonth(calendar.year, calendar.month)
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${calendar.year}-${String(calendar.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
         if (!map[dateStr] || !map[dateStr].shift) {
-          const shiftId = getShiftIdFromCycle(cyclePattern, dateStr)
+          const shiftId = getShiftIdFromCycle(cycles, dateStr)
           if (shiftId) {
             const shift = await getShift(shiftId)
             map[dateStr] = { shift, hasMemo: map[dateStr]?.hasMemo || false, isCycle: true }

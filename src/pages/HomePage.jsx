@@ -11,7 +11,7 @@ import { getPersonSchedulesInRange, addScheduleRecord, deleteScheduleRecord, get
 import { getShift, getAllShifts } from '../db/shiftStore'
 import { getPerson } from '../db/personStore'
 import { getMemosInRange } from '../db/memoStore'
-import { getCyclePattern, saveCyclePattern, deleteCyclePattern, getShiftIdFromCycle, excludeDateFromCycle } from '../db/cycleStore'
+import { getPersonCycles, saveCyclePattern, deleteAllPersonCycles, getShiftIdFromCycle, excludeDateFromCycle } from '../db/cycleStore'
 import { showToast } from '../components/Toast'
 
 export default function HomePage() {
@@ -27,7 +27,7 @@ export default function HomePage() {
   const [pickerColleagues, setPickerColleagues] = useState([])
   const [allShifts, setAllShifts] = useState([])
   const [cycleDialogOpen, setCycleDialogOpen] = useState(false)
-  const [currentCycle, setCurrentCycle] = useState(null)
+  const [currentCycles, setCurrentCycles] = useState([])
 
   // 获取当前选中人员
   const selectedPerson = persons.find((p) => p.id === selectedPersonId)
@@ -65,16 +65,16 @@ export default function HomePage() {
       map[record.date] = { record, shift, hasMemo: false }
     }
 
-    // 加载周期模式并填充未排班日期
-    const cyclePattern = await getCyclePattern(selectedPersonId)
-    setCurrentCycle(cyclePattern)
+    // 加载周期模式并填充未排班日期（支持多周期）
+    const cycles = await getPersonCycles(selectedPersonId)
+    setCurrentCycles(cycles)
 
-    if (cyclePattern) {
+    if (cycles.length > 0) {
       const daysInMonth = getDaysInMonth(calendar.year, calendar.month)
       for (let day = 1; day <= daysInMonth; day++) {
         const dateStr = `${calendar.year}-${String(calendar.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
         if (!map[dateStr] || !map[dateStr].shift) {
-          const shiftId = getShiftIdFromCycle(cyclePattern, dateStr)
+          const shiftId = getShiftIdFromCycle(cycles, dateStr)
           if (shiftId) {
             const shift = await getShift(shiftId)
             map[dateStr] = { shift, hasMemo: map[dateStr]?.hasMemo || false, isCycle: true }
@@ -194,11 +194,12 @@ export default function HomePage() {
     }
   }
 
-  // 删除周期
+  // 删除所有周期
   const handleCycleDelete = async (personId) => {
+    if (!window.confirm('确定删除该人员所有排班周期？')) return
     try {
-      await deleteCyclePattern(personId)
-      showToast('周期已删除')
+      await deleteAllPersonCycles(personId)
+      showToast('所有周期已删除')
       loadSchedules()
     } catch (err) {
       showToast(`删除周期失败: ${err.message}`, 'error')
@@ -254,9 +255,9 @@ export default function HomePage() {
         />
 
         {/* 周期指示条 */}
-        {currentCycle && selectedPersonId && (
+        {currentCycles.length > 0 && selectedPersonId && (
           <div className="flex items-center justify-between mt-2.5 px-1 py-1.5 bg-amber-50/60 rounded-xl border border-amber-200/40">
-            <span className="text-xs text-amber-700 font-medium">🔁 已设置 {currentCycle.cycleDays} 天循环</span>
+            <span className="text-xs text-amber-700 font-medium">🔁 已设置 {currentCycles.length} 个排班周期</span>
             <button onClick={() => setCycleDialogOpen(true)} className="text-xs font-medium text-primary-600 underline underline-offset-2">编辑</button>
           </div>
         )}
@@ -281,13 +282,9 @@ export default function HomePage() {
         {selectedPersonId && (
           <button
             onClick={() => setCycleDialogOpen(true)}
-            className={`px-4 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 flex-shrink-0 ${
-              currentCycle
-                ? 'bg-amber-50 text-amber-700 border border-amber-200 shadow-sm'
-                : 'bg-white text-slate-600 border border-gray-200 shadow-sm hover:border-primary-300'
-            }`}
+            className="px-4 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 flex-shrink-0 bg-amber-50 text-amber-700 border border-amber-200 shadow-sm"
           >
-            🔁 {currentCycle ? '编辑周期' : '周期排班'}
+            🔁 设置周期
           </button>
         )}
         <button
@@ -311,8 +308,8 @@ export default function HomePage() {
             <p className="text-xs text-slate-400">排班人数</p>
           </div>
           <div className="text-center p-3 rounded-xl bg-emerald-50/60">
-            <p className="text-lg font-bold text-emerald-600">{currentCycle ? '✓' : '—'}</p>
-            <p className="text-xs text-slate-400">周期设置</p>
+            <p className="text-lg font-bold text-emerald-600">{currentCycles.length}</p>
+            <p className="text-xs text-slate-400">周期数</p>
           </div>
         </div>
       </div>
@@ -338,7 +335,7 @@ export default function HomePage() {
         <CycleDialog
           personId={selectedPerson.id}
           personName={selectedPerson.name}
-          existingPattern={currentCycle}
+          existingPattern={null}
           onSave={handleCycleSave}
           onDelete={handleCycleDelete}
           onClose={() => setCycleDialogOpen(false)}

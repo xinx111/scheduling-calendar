@@ -2,15 +2,12 @@ import { openDB } from 'idb'
 import { DEFAULT_SHIFTS } from '../constants'
 
 const DB_NAME = 'scheduling-calendar'
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 /**
  * 初始化 IndexedDB 数据库
  *
- * v2 → v3 (2026-05-30): 修复部分用户数据库为空壳（版本2但无表）的问题。
- *   升级时 `if (!contains(...))` 确保：
- *   - 正常用户：表已存在 → 跳过创建 → 数据无损
- *   - 空壳用户：表不存在 → 创建所有表
+ * v4: cyclePatterns 改为 keyPath=id + personId 索引，支持一人多周期
  */
 export async function initDB() {
   const db = await openDB(DB_NAME, DB_VERSION, {
@@ -67,12 +64,15 @@ export async function initDB() {
         memoStore.createIndex('isDone', 'isDone', { unique: false })
       }
 
-      // ----- cyclePatterns 表（排班周期模式）-----
-      if (!db.objectStoreNames.contains('cyclePatterns')) {
-        db.createObjectStore('cyclePatterns', {
-          keyPath: 'personId',
-        })
+      // ----- cyclePatterns 表（排班周期模式，v4 支持一人多周期）-----
+      if (db.objectStoreNames.contains('cyclePatterns')) {
+        // v3→v4 迁移：删除旧表（keyPath=personId），重建新表
+        db.deleteObjectStore('cyclePatterns')
       }
+      const cyclePatternStore = db.createObjectStore('cyclePatterns', {
+        keyPath: 'id',
+      })
+      cyclePatternStore.createIndex('personId', 'personId', { unique: false })
     },
   })
 
@@ -132,7 +132,8 @@ export async function initDB() {
         memoStore.createIndex('remindAt', 'remindAt', { unique: false })
         memoStore.createIndex('isDone', 'isDone', { unique: false })
 
-        db.createObjectStore('cyclePatterns', { keyPath: 'personId' })
+        const cStore = db.createObjectStore('cyclePatterns', { keyPath: 'id' })
+        cStore.createIndex('personId', 'personId', { unique: false })
       },
     })
 
