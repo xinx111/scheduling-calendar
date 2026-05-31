@@ -224,25 +224,38 @@ export default function ShiftPicker({
               </div>
             </div>
           )}
-          {showMemo && (
-            <div className="space-y-2.5 bg-gray-50/80 rounded-2xl p-3.5">
-              <textarea value={memoContent} onChange={(e) => setMemoContent(e.target.value)} placeholder={`${date} 的备注...`}
-                className="input-field" rows={2} autoFocus />
-              <div className="flex items-center gap-2"><span className="text-xs text-slate-400">🔔</span>
+        </div>
+      </div>
+
+      {/* 备注弹窗（独立于 ShiftPicker） */}
+      {showMemo && (
+        <div className="modal-backdrop animate-fade-in z-[110]" onClick={() => setShowMemo(false)}>
+          <div className="absolute bottom-14 left-0 right-0 bg-white rounded-t-3xl shadow-2xl animate-slide-up"
+            onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-gray-300/60" />
+            </div>
+            <div className="px-5 pb-6 space-y-3">
+              <h3 className="text-base font-bold text-slate-700">📝 添加备注</h3>
+              <p className="text-xs text-slate-400 -mt-2">{date} · {personName}</p>
+              <textarea value={memoContent} onChange={(e) => setMemoContent(e.target.value)}
+                placeholder="输入备注内容..." className="input-field" rows={3} autoFocus />
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-400">🔔</span>
                 <input type="time" value={memoTime} onChange={(e) => setMemoTime(e.target.value)}
-                  className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 bg-white" />
+                  className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 bg-white" />
                 <span className="text-xs text-slate-400">提醒时间</span>
               </div>
               <div className="flex gap-2">
                 <button onClick={handleSaveMemo} disabled={!memoContent.trim()}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-gradient-to-r from-amber-500 to-amber-400 text-white disabled:opacity-50 active:scale-[0.98] transition-all">保存备注</button>
+                  className="flex-1 py-3 rounded-xl text-sm font-medium bg-gradient-to-r from-amber-500 to-amber-400 text-white disabled:opacity-50 active:scale-[0.98] transition-all shadow-lg shadow-amber-200/30">保存备注</button>
                 <button onClick={() => setShowMemo(false)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-white text-slate-500 border border-gray-200 active:scale-[0.98] transition-all">取消</button>
+                  className="flex-1 py-3 rounded-xl text-sm font-medium bg-white text-slate-500 border border-gray-200 active:scale-[0.98] transition-all">取消</button>
               </div>
             </div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
