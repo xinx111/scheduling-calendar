@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { usePersons } from '../hooks/usePersons'
 import { EXAMPLE_PERSONS } from '../constants'
 import { showToast } from '../components/Toast'
@@ -12,6 +13,7 @@ const AVATAR_OPTIONS = [
 ]
 
 export default function PeoplePage() {
+  const navigate = useNavigate()
   const { persons, loading, addPerson, deletePerson, toggleActive, updatePerson } =
     usePersons()
   const [showAddForm, setShowAddForm] = useState(false)
@@ -117,19 +119,21 @@ export default function PeoplePage() {
         <div className="space-y-2.5">
           {persons.map((person) => (
             <div key={person.id} className="card flex items-center gap-3 py-3.5">
-              {/* 头像 */}
-              <span className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold text-base shadow-sm flex-shrink-0"
-                style={{ backgroundColor: person.color }}>
-                {person.avatar || person.name.charAt(0)}
-              </span>
-
-              {/* 信息 */}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-700">{person.name}</p>
-                <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
-                  <span className={`w-1.5 h-1.5 rounded-full ${person.isActive ? 'bg-emerald-400' : 'bg-slate-300'}`} />
-                  {person.isActive ? '活跃中' : '已隐藏'}
-                </p>
+              {/* 头像 + 信息 */}
+              <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer active:scale-[0.98] transition-all"
+                onClick={() => navigate(`/person/${person.id}`)}>
+                <span className="w-11 h-11 rounded-2xl flex items-center justify-center text-white font-bold text-base shadow-sm flex-shrink-0"
+                  style={{ backgroundColor: person.color }}>
+                  {person.avatar || person.name.charAt(0)}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-700">{person.name}</p>
+                  <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1.5">
+                    <span className={`w-1.5 h-1.5 rounded-full ${person.isActive ? 'bg-emerald-400' : 'bg-slate-300'}`} />
+                    {person.isActive ? '活跃中' : '已隐藏'}
+                    <span className="text-primary-400 ml-auto">查看详情 →</span>
+                  </p>
+                </div>
               </div>
 
               {/* 操作 */}
