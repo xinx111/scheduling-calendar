@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { isLightColor } from '../utils/color'
 import * as memoStore from '../db/memoStore'
 import { getSchedulesByDate } from '../db/scheduleStore'
-import { getPerson } from '../db/personStore'
+import { getPerson, getActivePersons } from '../db/personStore'
+import { getAllCyclePatterns, getShiftIdFromCycle } from '../db/cycleStore'
 import { showToast } from './Toast'
 
 export default function ShiftPicker({
@@ -20,20 +21,45 @@ export default function ShiftPicker({
   const [colleagues, setColleagues] = useState(null)
   const hasChanged = selectedId !== currentShiftId
 
-  // 打开时自动加载当天所有同班同事
+  // 打开时自动加载当天所有同班同事（手动排班 + 周期排班）
   useEffect(() => {
     (async () => {
       if (!date) { setColleagues([]); return }
       try {
+        // 1. 获取手动排班记录
         const allRecords = await getSchedulesByDate(date)
-        // 按班次分组
+        // 2. 获取所有人的周期模式
+        const allCycles = await getAllCyclePatterns()
+        // 3. 获取所有人
+        const allPersons = await getActivePersons()
+
+        // 按 shiftId 分组 { shiftId: [person, ...] }
         const grouped = {}
+
+        // 处理手动排班
         for (const r of allRecords) {
           if (r.personId === personId) continue
           if (!grouped[r.shiftId]) grouped[r.shiftId] = []
-          const p = await getPerson(r.personId)
-          if (p) grouped[r.shiftId].push(p)
+          const p = allPersons.find((ap) => ap.id === r.personId) || await getPerson(r.personId)
+          if (p && !grouped[r.shiftId].some((gp) => gp.id === p.id)) grouped[r.shiftId].push(p)
         }
+
+        // 处理周期排班：对每个有周期的人，计算当天应该是什么班次
+        const personCycles = {}
+        for (const c of allCycles) {
+          if (!personCycles[c.personId]) personCycles[c.personId] = []
+          personCycles[c.personId].push(c)
+        }
+        for (const [pid, cycles] of Object.entries(personCycles)) {
+          if (pid === personId) continue
+          const shiftId = getShiftIdFromCycle(cycles, date)
+          if (shiftId) {
+            if (!grouped[shiftId]) grouped[shiftId] = []
+            const p = allPersons.find((ap) => ap.id === pid) || await getPerson(pid)
+            if (p && !grouped[shiftId].some((gp) => gp.id === p.id)) grouped[shiftId].push(p)
+          }
+        }
+
         setColleagues(grouped)
       } catch { setColleagues(null) }
     })()
