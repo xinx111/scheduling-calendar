@@ -15,9 +15,11 @@ export default function ToastContainer() {
 
   const addToast = useCallback((detail) => {
     setToasts((prev) => [...prev, { ...detail, entering: true }])
+    // 在消失前 300ms 开始淡出动画
+    const hideDelay = Math.max(0, (detail.duration || 2000) - 300)
     setTimeout(() => {
       setToasts((prev) => prev.map((t) => t.id === detail.id ? { ...t, entering: false } : t))
-    }, 50)
+    }, hideDelay)
     const timerId = setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== detail.id))
       delete timersRef.current[detail.id]
