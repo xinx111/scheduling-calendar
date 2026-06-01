@@ -17,6 +17,7 @@ export default function DayDetailPage() {
   const [showAddMemo, setShowAddMemo] = useState(false)
   const [memoContent, setMemoContent] = useState('')
   const [memoTime, setMemoTime] = useState('')
+  const [memoIsAlarm, setMemoIsAlarm] = useState(false)
 
   useEffect(() => {
     if (!date) return
@@ -46,11 +47,12 @@ export default function DayDetailPage() {
       date,
       content: memoContent.trim(),
       remindAt,
-      isAlarm: !!memoTime,
+      isAlarm: memoIsAlarm,
     })
 
     setMemoContent('')
     setMemoTime('')
+    setMemoIsAlarm(false)
     setShowAddMemo(false)
     showToast('备注已添加')
     window.dispatchEvent(new CustomEvent('memo-changed'))
@@ -211,6 +213,17 @@ export default function DayDetailPage() {
                 className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
               />
             </div>
+            {memoTime && (
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={memoIsAlarm}
+                  onChange={(e) => setMemoIsAlarm(e.target.checked)}
+                  className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500"
+                />
+                <span className="text-xs text-slate-600">⏰ 闹钟提醒（响铃+震动）</span>
+              </label>
+            )}
             <div className="flex gap-2">
               <button
                 onClick={handleAddMemo}

@@ -8,65 +8,39 @@ import { Capacitor } from '@capacitor/core'
  * 仅影响本 App，不会影响手机其他软件
  */
 
-// 是否为原生 App 环境（APK）
 const isNative = Capacitor.isNativePlatform()
 
-// 动态加载本地通知插件
+// 懒加载 LocalNotifications：用 registerPlugin 方式安全加载
 let LocalNotifications = null
-if (isNative) {
-  import('@capacitor/local-notifications').then((mod) => {
+
+async function loadLocalNotifications() {
+  if (LocalNotifications) return LocalNotifications
+  if (!isNative) return null
+  try {
+    const mod = await import('@capacitor/local-notifications')
     LocalNotifications = mod.LocalNotifications
-  }).catch(() => {
-    // 插件未安装，降级
-  })
-}
 
-/**
- * 调度原生本地通知
- */
-async function scheduleNativeNotification(memo) {
-  if (!LocalNotifications) return false
+    // 创建 Android 通知频道（Android 8+ 必需）
+    try {
+      await LocalNotifications.createChannel({
+        id: 'scheduling-reminders',
+        name: '排班提醒',
+        description: '排班日历的提醒和闹钟通知',
+        importance: 5, // IMPORTANCE_HIGH
+        sound: 'default',
+        visibility: 1,
+      })
+    } catch {
+      // 频道可能已存在，忽略
+    }
 
-  const remindTime = new Date(memo.remindAt)
-  const now = new Date()
-  if (remindTime <= now) return false
-
-  try {
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          id: hashMemoId(memo.id),
-          title: '排班提醒',
-          body: memo.content,
-          schedule: { at: remindTime },
-          sound: memo.isAlarm ? 'default' : undefined,
-          smallIcon: 'ic_stat_notification',
-          largeIcon: 'ic_launcher_foreground',
-          extra: { memoId: memo.id, date: memo.date },
-        },
-      ],
-    })
-    return true
-  } catch {
-    return false
+    return LocalNotifications
+  } catch (e) {
+    console.warn('LocalNotifications 插件未加载:', e)
+    return null
   }
 }
 
-/**
- * 取消已调度的通知
- */
-async function cancelNativeNotification(memoId) {
-  if (!LocalNotifications) return
-  try {
-    await LocalNotifications.cancel({ notifications: [{ id: hashMemoId(memoId) }] })
-  } catch {
-    // 忽略
-  }
-}
-
-/**
- * 将字符串 ID 转成数字 ID（LocalNotifications 需要数字 ID）
- */
 function hashMemoId(id) {
   let hash = 0
   for (let i = 0; i < id.length; i++) {
@@ -89,18 +63,38 @@ export function useReminder() {
     setPendingCount(pending.length)
     setUpcoming(upcomingData)
 
-    // 自动调度未设置原生通知的提醒（仅原生 App 环境）
+    // 自动调度原生通知
     if (isNative) {
+      const ln = await loadLocalNotifications()
+      if (!ln) return
+
       for (const memo of upcomingData) {
         if (memo.remindAt && !scheduledRef.current.has(memo.id)) {
-          const ok = await scheduleNativeNotification(memo)
-          if (ok) scheduledRef.current.add(memo.id)
+          try {
+            const remindTime = new Date(memo.remindAt)
+            if (remindTime <= new Date()) continue
+
+            await ln.schedule({
+              notifications: [{
+                id: hashMemoId(memo.id),
+                title: '排班提醒',
+                body: memo.content,
+                schedule: { at: remindTime },
+                sound: memo.isAlarm ? 'default' : undefined,
+                channelId: 'scheduling-reminders',
+                smallIcon: 'ic_stat_notification',
+                extra: { memoId: memo.id, date: memo.date },
+              }],
+            })
+            scheduledRef.current.add(memo.id)
+          } catch {
+            // 调度失败，下次重试
+          }
         }
       }
     }
   }, [])
 
-  // 定期检查提醒（每 30 秒）
   useEffect(() => {
     checkReminders()
     intervalRef.current = setInterval(checkReminders, 30000)
@@ -110,15 +104,18 @@ export function useReminder() {
   }, [checkReminders])
 
   /**
-   * 请求通知权限
+   * 请求通知权限（Android 13+ 需要动态申请）
    */
   const requestPermission = useCallback(async () => {
-    if (isNative && LocalNotifications) {
-      try {
-        const permResult = await LocalNotifications.requestPermissions()
-        return permResult.display === 'granted'
-      } catch {
-        return false
+    if (isNative) {
+      const ln = await loadLocalNotifications()
+      if (ln) {
+        try {
+          const permResult = await ln.requestPermissions()
+          return permResult.display === 'granted'
+        } catch {
+          return false
+        }
       }
     }
 
@@ -130,10 +127,41 @@ export function useReminder() {
     return result === 'granted'
   }, [])
 
+  /**
+   * 为特定备忘录调度通知（在保存备注后立即调用）
+   */
+  const scheduleForMemo = useCallback(async (memo) => {
+    if (!memo.remindAt || !isNative) return
+    const ln = await loadLocalNotifications()
+    if (!ln) return
+
+    try {
+      const remindTime = new Date(memo.remindAt)
+      if (remindTime <= new Date()) return
+
+      await ln.schedule({
+        notifications: [{
+          id: hashMemoId(memo.id),
+          title: '排班提醒',
+          body: memo.content,
+          schedule: { at: remindTime },
+          sound: memo.isAlarm ? 'default' : undefined,
+          channelId: 'scheduling-reminders',
+          smallIcon: 'ic_stat_notification',
+          extra: { memoId: memo.id, date: memo.date },
+        }],
+      })
+      scheduledRef.current.add(memo.id)
+    } catch {
+      // 忽略
+    }
+  }, [])
+
   return {
     upcoming,
     pendingCount,
     checkReminders,
     requestPermission,
+    scheduleForMemo,
   }
 }
