@@ -204,6 +204,17 @@ export default function DayDetailPage() {
               rows={3}
               autoFocus
             />
+            <label className="flex items-center gap-2 py-2.5 px-3 rounded-xl bg-amber-50 border border-amber-100">
+              <input
+                type="checkbox"
+                checked={memoIsAlarm}
+                onChange={(e) => setMemoIsAlarm(e.target.checked)}
+                className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500"
+              />
+              <span className="text-xs font-medium text-amber-700">
+                ⏰ 闹钟提醒（响铃+震动）
+              </span>
+            </label>
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400">🔔 提醒时间</span>
               <input
@@ -213,19 +224,6 @@ export default function DayDetailPage() {
                 className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-200"
               />
             </div>
-            <label className="flex items-center gap-2 py-2 px-3 rounded-xl bg-amber-50 border border-amber-100">
-              <input
-                type="checkbox"
-                checked={memoIsAlarm}
-                disabled={!memoTime}
-                onChange={(e) => setMemoIsAlarm(e.target.checked)}
-                className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500"
-              />
-              <span className={`text-xs ${!memoTime ? 'text-slate-400' : 'text-slate-600'}`}>
-                ⏰ 闹钟提醒（响铃+震动）
-                {!memoTime && <span className="text-slate-300 ml-1">（请先选择提醒时间）</span>}
-              </span>
-            </label>
             <div className="flex gap-2">
               <button
                 onClick={handleAddMemo}
