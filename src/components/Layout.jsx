@@ -33,8 +33,8 @@ export default function Layout() {
       </header>
 
       {/* 页面内容 */}
-      <main className="page-content">
-        <div className="max-w-lg mx-auto">
+      <main className="fixed top-14 bottom-16 left-0 right-0 overflow-y-auto">
+        <div className="max-w-lg mx-auto px-4 py-4">
           <Outlet />
         </div>
       </main>
