@@ -5,7 +5,6 @@ import HomePage from './pages/HomePage'
 import CalendarPage from './pages/CalendarPage'
 import DayDetailPage from './pages/DayDetailPage'
 import PersonDetailPage from './pages/PersonDetailPage'
-import UploadPage from './pages/UploadPage'
 import PeoplePage from './pages/PeoplePage'
 import SettingsPage from './pages/SettingsPage'
 import RemindersPage from './pages/RemindersPage'
@@ -20,7 +19,6 @@ export default function App() {
           <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/day/:date" element={<DayDetailPage />} />
           <Route path="/person/:personId" element={<PersonDetailPage />} />
-          <Route path="/upload" element={<UploadPage />} />
           <Route path="/people" element={<PeoplePage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/reminders" element={<RemindersPage />} />

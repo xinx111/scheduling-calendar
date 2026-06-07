@@ -81,8 +81,15 @@ export default function HomePage() {
       }
     }
 
-    // 加载整月备注标记
-    const memos = await getMemosInRangeByPerson(startDate, endDate, selectedPersonId)
+    // 加载整月备注标记（含重复展开）
+    const recordsMap = {}
+    for (const r of records) recordsMap[r.date] = r.shiftId
+    const getShiftForDate = (dateStr) => {
+      if (recordsMap[dateStr]) return recordsMap[dateStr]
+      if (cycles.length > 0) return getShiftIdFromCycle(cycles, dateStr)
+      return null
+    }
+    const memos = await getMemosInRangeByPerson(startDate, endDate, selectedPersonId, getShiftForDate)
     const memoDateSet = new Set(memos.map((m) => m.date))
     for (const date of memoDateSet) {
       if (!map[date]) {
@@ -234,23 +241,16 @@ export default function HomePage() {
       </div>
 
       {/* 快捷操作 */}
-      <div className="flex gap-2.5">
-        {selectedPersonId && (
+      {selectedPersonId && (
+        <div className="flex gap-2.5">
           <button
             onClick={() => setCycleDialogOpen(true)}
-            className="px-4 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 flex-shrink-0 bg-amber-50 text-amber-700 border border-amber-200 shadow-sm"
+            className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 bg-amber-50 text-amber-700 border border-amber-200 shadow-sm"
           >
             🔁 设置周期
           </button>
-        )}
-        <button
-          onClick={() => navigate('/upload')}
-          className="flex-1 btn-primary text-center flex items-center justify-center gap-1.5 shadow-lg shadow-primary-200/30"
-        >
-          <span>📷</span>
-          <span>拍照识别</span>
-        </button>
-      </div>
+        </div>
+      )}
 
       {/* 本周概览 */}
       <div className="card">

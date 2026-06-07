@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">排班日历</string>
+    <string name="title_activity_main">排班日历</string>
+    <string name="package_name">com.scheduling.calendar</string>
+    <string name="custom_url_scheme">com.scheduling.calendar</string>
+</resources>

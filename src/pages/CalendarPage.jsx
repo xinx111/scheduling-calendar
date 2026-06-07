@@ -5,9 +5,10 @@ import { useCalendar } from '../hooks/useCalendar'
 import PersonSelector from '../components/PersonSelector'
 import CalendarGrid from '../components/CalendarGrid'
 import ShiftPicker from '../components/ShiftPicker'
-import { getPersonSchedulesInRange, addScheduleRecord, deleteScheduleRecord } from '../db/scheduleStore'
+import { getPersonSchedulesInRange, addScheduleRecord, deleteScheduleRecord, getColleaguesByDateAndShift } from '../db/scheduleStore'
+import { getPerson } from '../db/personStore'
 import { getShift, getAllShifts } from '../db/shiftStore'
-import { getMemosInRange } from '../db/memoStore'
+import { getMemosInRangeByPerson } from '../db/memoStore'
 import { today as getToday, getDaysInMonth } from '../utils/date'
 import { getPersonCycles, getShiftIdFromCycle } from '../db/cycleStore'
 import { showToast } from '../components/Toast'
@@ -21,6 +22,7 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(false)
   const [allShifts, setAllShifts] = useState([])
   const [pickerDate, setPickerDate] = useState(null)
+  const [pickerColleagues, setPickerColleagues] = useState([])
 
   useEffect(() => {
     getAllShifts().then(setAllShifts)
@@ -49,10 +51,21 @@ export default function CalendarPage() {
     const map = {}
     for (const record of records) {
       const shift = await getShift(record.shiftId)
-      map[record.date] = { record, shift, hasMemo: false }
+      let colleagues = []
+      if (record.shiftId) {
+        const colleagueRecords = await getColleaguesByDateAndShift(record.date, record.shiftId)
+        colleagues = (
+          await Promise.all(
+            colleagueRecords
+              .filter((c) => c.personId !== selectedPersonId)
+              .map((c) => getPerson(c.personId))
+          )
+        ).filter(Boolean)
+      }
+      map[record.date] = { record, shift, colleagues, hasMemo: false }
     }
 
-    // 加载周期模式并填充未排班日期（支持多周期）
+    // 加载周期模式并填充未排班日期
     const cycles = await getPersonCycles(selectedPersonId)
     if (cycles.length > 0) {
       const daysInMonth = getDaysInMonth(calendar.year, calendar.month)
@@ -62,18 +75,29 @@ export default function CalendarPage() {
           const shiftId = getShiftIdFromCycle(cycles, dateStr)
           if (shiftId) {
             const shift = await getShift(shiftId)
-            map[dateStr] = { shift, hasMemo: map[dateStr]?.hasMemo || false, isCycle: true }
+            let colleagues = []
+            if (shift && shift.id !== 'shift-off') {
+              const colleagueRecords = await getColleaguesByDateAndShift(dateStr, shiftId)
+              colleagues = (
+                await Promise.all(
+                  colleagueRecords
+                    .filter((c) => c.personId !== selectedPersonId)
+                    .map((c) => getPerson(c.personId))
+                )
+              ).filter(Boolean)
+            }
+            map[dateStr] = { shift, colleagues, hasMemo: map[dateStr]?.hasMemo || false, isCycle: true }
           }
         }
       }
     }
 
     // 加载整月备注标记
-    const memos = await getMemosInRange(startDate, endDate)
+    const memos = await getMemosInRangeByPerson(startDate, endDate, selectedPersonId)
     const memoDateSet = new Set(memos.map((m) => m.date))
     for (const date of memoDateSet) {
       if (!map[date]) {
-        map[date] = { shift: null, hasMemo: true }
+        map[date] = { shift: null, colleagues: [], hasMemo: true }
       } else {
         map[date].hasMemo = true
       }
@@ -87,8 +111,23 @@ export default function CalendarPage() {
     loadSchedules()
   }, [loadSchedules])
 
-  const handleDateClick = (date) => {
+  const handleDateClick = async (date) => {
     if (selectedPersonId) {
+      const entry = schedulesMap[date]
+      const shiftId = entry?.shift?.id
+      if (shiftId) {
+        const colleagueRecords = await getColleaguesByDateAndShift(date, shiftId)
+        const colleaguePersons = (
+          await Promise.all(
+            colleagueRecords
+              .filter((c) => c.personId !== selectedPersonId)
+              .map((c) => getPerson(c.personId))
+          )
+        ).filter(Boolean)
+        setPickerColleagues(colleaguePersons)
+      } else {
+        setPickerColleagues([])
+      }
       setPickerDate(date)
     } else {
       navigate(`/day/${date}`)
@@ -128,61 +167,30 @@ export default function CalendarPage() {
     return entry?.shift?.id || null
   }
 
-  const isCurrentPickerCycle = () => {
-    if (!pickerDate) return false
-    const entry = schedulesMap[pickerDate]
-    return !!(entry?.isCycle && entry?.shift && !entry?.record)
-  }
-
   const selectedPerson = activePersons.find(p => p.id === selectedPersonId)
   const today = getToday()
 
   return (
     <div>
-      {/* 月份导航 */}
       <div className="flex items-center justify-between mb-4">
-        <button
-          onClick={calendar.goToPrevMonth}
-          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 active:scale-90 transition-all text-lg"
-        >
-          ‹
-        </button>
+        <button onClick={calendar.goToPrevMonth} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 active:scale-90 transition-all text-lg">‹</button>
         <h2 className="text-lg font-bold text-slate-700">{calendar.title}</h2>
-        <button
-          onClick={calendar.goToNextMonth}
-          className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 active:scale-90 transition-all text-lg"
-        >
-          ›
-        </button>
+        <button onClick={calendar.goToNextMonth} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 active:scale-90 transition-all text-lg">›</button>
       </div>
 
-      {/* 人员选择 */}
-      <PersonSelector
-        persons={activePersons}
-        selectedId={selectedPersonId}
-        onSelect={setSelectedPersonId}
-      />
+      <PersonSelector persons={activePersons} selectedId={selectedPersonId} onSelect={setSelectedPersonId} />
 
-      {/* 日历 */}
       <div className="card mt-3">
         <p className="text-xs text-slate-400 mb-2">
           {selectedPersonId ? '点击日期可为此人员安排班次' : '选择人员后点击日期可排班'}
         </p>
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full" />
-          </div>
+          <div className="flex justify-center py-12"><div className="spinner" /></div>
         ) : (
-          <CalendarGrid
-            grid={calendar.grid}
-            schedulesMap={schedulesMap}
-            selectedDate={today}
-            onDateClick={handleDateClick}
-          />
+          <CalendarGrid grid={calendar.grid} schedulesMap={schedulesMap} selectedDate={today} onDateClick={handleDateClick} />
         )}
       </div>
 
-      {/* 班次选择器 */}
       {pickerDate && selectedPerson && (
         <ShiftPicker
           shifts={allShifts}
@@ -190,7 +198,7 @@ export default function CalendarPage() {
           date={pickerDate}
           personName={selectedPerson.name}
           personId={selectedPerson.id}
-          isCycleShift={isCurrentPickerCycle()}
+          colleagues={pickerColleagues}
           onSelect={handleShiftSelect}
           onRemove={handleShiftRemove}
           onClose={() => setPickerDate(null)}
