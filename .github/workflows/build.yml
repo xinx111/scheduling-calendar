@@ -35,6 +35,9 @@ jobs:
       - name: Sync to Android project
         run: npx cap sync android
 
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Build APK
         run: |
           cd android
