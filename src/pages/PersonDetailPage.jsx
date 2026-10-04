@@ -129,7 +129,6 @@ export default function PersonDetailPage() {
         const updated = await updateMemo(editingMemoId, {
           content: memoContent.trim(),
           remindAt,
-          isAlarm: !!memoTime,
         })
         await rescheduleMemoNotification(editingMemoId, updated)
         showToast('备注已更新')
@@ -138,7 +137,6 @@ export default function PersonDetailPage() {
           date: memoDate,
           content: memoContent.trim(),
           remindAt,
-          isAlarm: !!memoTime,
           personId,
         })
         scheduleMemoNotification(memo)

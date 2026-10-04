@@ -57,7 +57,6 @@ export async function addMemo(data) {
     content: data.content,
     personId: data.personId || null,
     remindAt: data.remindAt || null,
-    isAlarm: data.isAlarm || false,
     repeatRule: data.repeatRule || null,
     isDone: false,
     createdAt: Date.now(),

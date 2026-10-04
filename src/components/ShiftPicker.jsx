@@ -105,12 +105,11 @@ export default function ShiftPicker({
         memo = await memoStore.updateMemo(editingMemo.id, {
           content: memoContent.trim(),
           remindAt,
-          isAlarm: !!memoTime,
           repeatRule,
         })
         await rescheduleMemoNotification(editingMemo.id, memo)
       } else {
-        memo = await memoStore.addMemo({ date, content: memoContent.trim(), remindAt, isAlarm: !!memoTime, personId, repeatRule })
+        memo = await memoStore.addMemo({ date, content: memoContent.trim(), remindAt, personId, repeatRule })
         await scheduleMemoNotification(memo)
       }
       setSavedMemo(memo)

@@ -9,10 +9,11 @@ import PersonDetailPage from './pages/PersonDetailPage'
 import PeoplePage from './pages/PeoplePage'
 import SettingsPage from './pages/SettingsPage'
 import RemindersPage from './pages/RemindersPage'
-import { scheduleAllPending, checkWebReminders } from './notifications'
+import { scheduleAllPending, checkWebReminders, ensureReminderChannel } from './notifications'
 
 export default function App() {
   useEffect(() => {
+    ensureReminderChannel()
     scheduleAllPending()
     const timer = setInterval(checkWebReminders, 30000)
     return () => clearInterval(timer)

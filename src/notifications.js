@@ -14,6 +14,8 @@ const WEB_GRACE_MS = 60 * 1000
 const REMINDER_CHANNEL_ID = 'scheduling-reminders'
 // 测试通知的固定 ID
 const TEST_NOTIFICATION_ID = 999999999
+// 通道属性首次创建后不可变：改配置前必须先删除旧通道再重建
+let channelReady = false
 
 function hashMemoId(id) {
   let hash = 0
@@ -24,17 +26,24 @@ function hashMemoId(id) {
 }
 
 export async function ensureReminderChannel() {
-  if (!isNative) return
+  if (!isNative || channelReady) return
+  try {
+    await LocalNotifications.deleteChannel({ id: REMINDER_CHANNEL_ID })
+  } catch {
+    // 通道不存在时删除是空操作
+  }
   try {
     await LocalNotifications.createChannel({
       id: REMINDER_CHANNEL_ID,
       name: '排班提醒',
-      description: '排班日历的提醒和闹钟',
+      description: '排班日历的提醒通知',
       importance: 5,
-      sound: 'default',
       vibration: true,
       visibility: 1,
+      // 不能传 sound: 'default'——插件会解析成不存在的资源导致通道静音；
+      // 不传时系统默认使用通知提示音
     })
+    channelReady = true
   } catch (e) {
     console.warn('[Reminder] createChannel error:', e)
   }
@@ -69,7 +78,6 @@ export async function scheduleMemoNotification(memo) {
           title: '排班提醒',
           body: memo.content,
           schedule: { at: remindTime },
-          sound: memo.isAlarm ? 'default' : undefined,
           channelId: REMINDER_CHANNEL_ID,
           smallIcon: 'ic_stat_notification',
           extra: { memoId: memo.id },

@@ -25,7 +25,6 @@ export default function DayDetailPage() {
   const [editingMemoId, setEditingMemoId] = useState(null)
   const [memoContent, setMemoContent] = useState('')
   const [memoTime, setMemoTime] = useState('')
-  const [memoIsAlarm, setMemoIsAlarm] = useState(false)
 
   useEffect(() => {
     if (!date) return
@@ -47,14 +46,12 @@ export default function DayDetailPage() {
     setEditingMemoId(memo.id)
     setMemoContent(memo.content)
     setMemoTime(memo.remindAt ? toTimeInputValue(memo.remindAt) : '')
-    setMemoIsAlarm(!!memo.isAlarm)
     setShowAddMemo(true)
   }
 
   const resetMemoForm = () => {
     setMemoContent('')
     setMemoTime('')
-    setMemoIsAlarm(false)
     setShowAddMemo(false)
     setEditingMemoId(null)
   }
@@ -72,7 +69,6 @@ export default function DayDetailPage() {
         const updated = await memoStore.updateMemo(editingMemoId, {
           content: memoContent.trim(),
           remindAt,
-          isAlarm: memoIsAlarm,
         })
         await rescheduleMemoNotification(editingMemoId, updated)
         showToast('备注已更新')
@@ -81,7 +77,6 @@ export default function DayDetailPage() {
           date,
           content: memoContent.trim(),
           remindAt,
-          isAlarm: memoIsAlarm,
         })
         await scheduleMemoNotification(memo)
         showToast('备注已添加')
@@ -224,7 +219,6 @@ export default function DayDetailPage() {
                       hour: '2-digit',
                       minute: '2-digit',
                     })}
-                    {memo.isAlarm ? ' ⏰ 闹钟' : ''}
                   </p>
                 )}
               </div>
@@ -255,17 +249,6 @@ export default function DayDetailPage() {
               rows={3}
               autoFocus
             />
-            <label className="flex items-center gap-2 py-2.5 px-3 rounded-xl bg-amber-50 border border-amber-100">
-              <input
-                type="checkbox"
-                checked={memoIsAlarm}
-                onChange={(e) => setMemoIsAlarm(e.target.checked)}
-                className="w-4 h-4 rounded text-primary-600 focus:ring-primary-500"
-              />
-              <span className="text-xs font-medium text-amber-700">
-                ⏰ 闹钟提醒（响铃+震动）
-              </span>
-            </label>
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400">🔔 提醒时间</span>
               <input

@@ -107,7 +107,7 @@ export default function RemindersPage() {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs font-medium text-primary-700">🔔 通知权限</p>
-            <p className="text-[11px] text-primary-500 mt-0.5">开启后可接收原生通知弹窗和闹钟</p>
+            <p className="text-[11px] text-primary-500 mt-0.5">开启后可接收原生通知提醒</p>
           </div>
           <button onClick={handleRequestPermission}
             className="text-xs font-semibold text-white px-4 py-2 rounded-xl bg-primary-500 active:bg-primary-600 transition-colors shadow-sm">
@@ -147,7 +147,7 @@ export default function RemindersPage() {
           {reminders.map((reminder) => (
             <div key={reminder.id} className="card flex items-start gap-3 py-3.5">
               <div className="mt-0.5 text-lg w-8 flex-shrink-0 text-center">
-                {reminder.isAlarm ? '⏰' : '🔔'}
+                🔔
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-slate-700">{reminder.content}</p>
@@ -156,7 +156,6 @@ export default function RemindersPage() {
                   {reminder.remindAt && (
                     <span>· {new Date(reminder.remindAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
                   )}
-                  {reminder.isAlarm && <span className="px-1.5 py-0.5 rounded text-[10px] bg-amber-50 text-amber-600 font-medium">闹钟</span>}
                 </p>
                 <button onClick={() => navigate(`/day/${reminder.date}`)}
                   className="text-xs font-medium text-primary-600 mt-1.5 hover:underline">查看详情 →</button>
