@@ -22,7 +22,6 @@ export default function CalendarPage() {
   const [loading, setLoading] = useState(false)
   const [allShifts, setAllShifts] = useState([])
   const [pickerDate, setPickerDate] = useState(null)
-  const [pickerColleagues, setPickerColleagues] = useState([])
 
   useEffect(() => {
     getAllShifts().then(setAllShifts)
@@ -111,23 +110,8 @@ export default function CalendarPage() {
     loadSchedules()
   }, [loadSchedules])
 
-  const handleDateClick = async (date) => {
+  const handleDateClick = (date) => {
     if (selectedPersonId) {
-      const entry = schedulesMap[date]
-      const shiftId = entry?.shift?.id
-      if (shiftId) {
-        const colleagueRecords = await getColleaguesByDateAndShift(date, shiftId)
-        const colleaguePersons = (
-          await Promise.all(
-            colleagueRecords
-              .filter((c) => c.personId !== selectedPersonId)
-              .map((c) => getPerson(c.personId))
-          )
-        ).filter(Boolean)
-        setPickerColleagues(colleaguePersons)
-      } else {
-        setPickerColleagues([])
-      }
       setPickerDate(date)
     } else {
       navigate(`/day/${date}`)
@@ -198,7 +182,6 @@ export default function CalendarPage() {
           date={pickerDate}
           personName={selectedPerson.name}
           personId={selectedPerson.id}
-          colleagues={pickerColleagues}
           onSelect={handleShiftSelect}
           onRemove={handleShiftRemove}
           onClose={() => setPickerDate(null)}

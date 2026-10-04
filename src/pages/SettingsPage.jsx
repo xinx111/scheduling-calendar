@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { getAllShifts, addShift, deleteShift, updateShift } from '../db/shiftStore'
 import { getDB, resetDB } from '../db/index'
 import { showToast } from '../components/Toast'
+import { today } from '../utils/date'
 
 function hexToRgba(hex, alpha = 0.15) {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -84,10 +86,6 @@ export default function SettingsPage() {
       await clearTx.store.clear()
       await clearTx.done
 
-      const clearWeekTx = db.transaction('schedules', 'readwrite')
-      await clearWeekTx.store.clear()
-      await clearWeekTx.done
-
       const clearCycleTx = db.transaction('cyclePatterns', 'readwrite')
       await clearCycleTx.store.clear()
       await clearCycleTx.done
@@ -95,6 +93,38 @@ export default function SettingsPage() {
       showToast('排班数据已清除')
     } catch (err) {
       showToast('清除失败: ' + err.message, 'error')
+    }
+  }
+
+  const handleExportData = async () => {
+    try {
+      const db = await getDB()
+      const data = {
+        exportedAt: new Date().toISOString(),
+        persons: await db.getAll('persons'),
+        shiftTemplates: await db.getAll('shiftTemplates'),
+        scheduleRecords: await db.getAll('scheduleRecords'),
+        cyclePatterns: await db.getAll('cyclePatterns'),
+        memos: await db.getAll('memos'),
+      }
+      const json = JSON.stringify(data, null, 2)
+
+      if (Capacitor.isNativePlatform()) {
+        await navigator.clipboard.writeText(json)
+        showToast('数据已复制到剪贴板，可粘贴到备忘录保存')
+        return
+      }
+
+      const blob = new Blob([json], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `scheduling-calendar-${today()}.json`
+      link.click()
+      URL.revokeObjectURL(url)
+      showToast('数据已导出')
+    } catch (err) {
+      showToast('导出失败: ' + err.message, 'error')
     }
   }
 
@@ -241,7 +271,7 @@ export default function SettingsPage() {
             🗑️ 清除排班数据（保留人员/班次/备忘录）
           </button>
           <div className="flex gap-2.5">
-            <button onClick={() => showToast('数据导出（待实现）')}
+            <button onClick={handleExportData}
               className="flex-1 py-3 rounded-2xl text-sm font-medium border border-gray-200 text-slate-500 bg-white active:scale-[0.98] transition-all">导出数据</button>
             <button onClick={() => {
                 if (window.confirm('确定清除所有数据？此操作不可恢复！'))

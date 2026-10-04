@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import ToastContainer from './components/Toast'
@@ -8,8 +9,15 @@ import PersonDetailPage from './pages/PersonDetailPage'
 import PeoplePage from './pages/PeoplePage'
 import SettingsPage from './pages/SettingsPage'
 import RemindersPage from './pages/RemindersPage'
+import { scheduleAllPending, checkWebReminders } from './notifications'
 
 export default function App() {
+  useEffect(() => {
+    scheduleAllPending()
+    const timer = setInterval(checkWebReminders, 30000)
+    return () => clearInterval(timer)
+  }, [])
+
   return (
     <>
       <ToastContainer />

@@ -2,12 +2,13 @@ import { openDB } from 'idb'
 import { DEFAULT_SHIFTS } from '../constants'
 
 const DB_NAME = 'scheduling-calendar'
-const DB_VERSION = 4
+const DB_VERSION = 5
 
 /**
  * 初始化 IndexedDB 数据库
  *
  * v4: cyclePatterns 改为 keyPath=id + personId 索引，支持一人多周期
+ * v5: 移除 schedules 周批次表（拍照识别功能已下线）
  */
 export async function initDB() {
   const db = await openDB(DB_NAME, DB_VERSION, {
@@ -47,11 +48,9 @@ export async function initDB() {
         })
       }
 
-      // ----- schedules 表（排班表批次）-----
-      if (!db.objectStoreNames.contains('schedules')) {
-        db.createObjectStore('schedules', {
-          keyPath: 'id',
-        }).createIndex('weekStart', 'weekStart', { unique: false })
+      // ----- schedules 表：v5 起移除（原拍照识别周批次）-----
+      if (db.objectStoreNames.contains('schedules')) {
+        db.deleteObjectStore('schedules')
       }
 
       // ----- memos 表（备忘录）-----
@@ -65,14 +64,16 @@ export async function initDB() {
       }
 
       // ----- cyclePatterns 表（排班周期模式，v4 支持一人多周期）-----
-      if (db.objectStoreNames.contains('cyclePatterns')) {
-        // v3→v4 迁移：删除旧表（keyPath=personId），重建新表
+      if (oldVersion < 4 && db.objectStoreNames.contains('cyclePatterns')) {
+        // 仅 v3→v4 迁移：删除旧表（keyPath=personId），重建新表
         db.deleteObjectStore('cyclePatterns')
       }
-      const cyclePatternStore = db.createObjectStore('cyclePatterns', {
-        keyPath: 'id',
-      })
-      cyclePatternStore.createIndex('personId', 'personId', { unique: false })
+      if (!db.objectStoreNames.contains('cyclePatterns')) {
+        const cyclePatternStore = db.createObjectStore('cyclePatterns', {
+          keyPath: 'id',
+        })
+        cyclePatternStore.createIndex('personId', 'personId', { unique: false })
+      }
     },
   })
 
@@ -124,8 +125,6 @@ export async function initDB() {
         recordStore.createIndex('shiftId', 'shiftId', { unique: false })
         recordStore.createIndex('personId+date', ['personId', 'date'], { unique: true })
         recordStore.createIndex('date+shiftId', ['date', 'shiftId'], { unique: false })
-
-        db.createObjectStore('schedules', { keyPath: 'id' }).createIndex('weekStart', 'weekStart', { unique: false })
 
         const memoStore = db.createObjectStore('memos', { keyPath: 'id' })
         memoStore.createIndex('date', 'date', { unique: false })

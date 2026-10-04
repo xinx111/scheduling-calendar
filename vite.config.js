@@ -10,7 +10,7 @@ export default defineConfig({
       manifest: {
         name: '排班日历',
         short_name: '排班日历',
-        description: '拍照识别 · 人员排班 · 日历来查看 · 闹钟提醒',
+        description: '人员排班 · 日历查看 · 闹钟提醒',
         theme_color: '#4F46E5',
         icons: [
           {

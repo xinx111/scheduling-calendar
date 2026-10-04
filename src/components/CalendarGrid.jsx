@@ -15,7 +15,7 @@ export default function CalendarGrid({
           <div
             key={i}
             className={`text-center text-xs font-semibold py-2 ${
-              i === 0 || i === 6 ? 'text-rose-400' : 'text-slate-400'
+              i === 5 || i === 6 ? 'text-rose-400' : 'text-slate-400'
             }`}
           >
             {name}

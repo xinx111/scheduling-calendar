@@ -92,5 +92,6 @@ export const NAV_ITEMS = [
 /**
  * 日期工具
  */
-export const WEEKDAY_NAMES = ['日', '一', '二', '三', '四', '五', '六']
+// 日历网格以周一为一周开始
+export const WEEKDAY_NAMES = ['一', '二', '三', '四', '五', '六', '日']
 export const WEEKDAY_NAMES_FULL = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']

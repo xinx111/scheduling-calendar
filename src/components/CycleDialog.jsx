@@ -24,11 +24,16 @@ export default function CycleDialog({
 
   const handleSave = () => {
     if (!hasSelection) return
+    // 存满整个周期（含留空天），按 dayOffset 计算才不会错位
+    const normalized = Array.from({ length: cycleDays }, (_, i) => {
+      const entry = pattern[i]
+      return { dayOffset: i, shiftId: entry?.shiftId || '' }
+    })
     onSave({
       personId,
       cycleDays,
       startDate,
-      pattern: pattern.filter((p) => p.shiftId),
+      pattern: normalized,
       title: `${personName}的排班周期`,
     })
     // 重置表单

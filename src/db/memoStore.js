@@ -143,12 +143,19 @@ export async function updateMemo(id, updates) {
 }
 
 /**
+ * 重复展开的备忘录 id 形如 "2026-06-07_memo_xxx"，
+ * 完成或删除都作用于原始备忘录
+ */
+function resolveOriginalMemoId(id) {
+  const marker = id.indexOf('memo_')
+  return marker > 0 ? id.slice(marker) : id
+}
+
+/**
  * 标记提醒完成（对重复备注，标记原始备注完成，所有重复都消失）
  */
 export async function markMemoDone(id) {
-  // id 可能是 "memo_xxx_2026-06-07"（重复展开的），也可能是原始 "memo_xxx"
-  const originalId = id.includes('_20') ? id.split('_20')[0] : id
-  return updateMemo(originalId, { isDone: true })
+  return updateMemo(resolveOriginalMemoId(id), { isDone: true })
 }
 
 /**
@@ -156,7 +163,7 @@ export async function markMemoDone(id) {
  */
 export async function deleteMemo(id) {
   const db = await getDB()
-  await db.delete('memos', id)
+  await db.delete('memos', resolveOriginalMemoId(id))
 }
 
 /**

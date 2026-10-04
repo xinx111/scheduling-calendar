@@ -1,5 +1,3 @@
-import { getWeekdayName } from '../utils/date'
-
 export default function CalendarDay({
   day,
   shift,
@@ -8,9 +6,6 @@ export default function CalendarDay({
   isSelected = false,
   onClick,
 }) {
-  const isWeekend =
-    getWeekdayName(day.date) === '六' || getWeekdayName(day.date) === '日'
-
   const shiftColor = shift?.color || null
 
   return (

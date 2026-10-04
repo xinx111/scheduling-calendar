@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getPerson } from '../db/personStore'
 import { getPersonSchedulesInRange } from '../db/scheduleStore'
@@ -7,6 +7,7 @@ import { getMemosInRangeByPerson, addMemo, deleteMemo, markMemoDone } from '../d
 import { getPersonCycles, getShiftIdFromCycle } from '../db/cycleStore'
 import { today, getWeekdayName, parseDate, getDaysInMonth } from '../utils/date'
 import { showToast } from '../components/Toast'
+import { scheduleMemoNotification } from '../notifications'
 
 export default function PersonDetailPage() {
   const { personId } = useParams()
@@ -24,8 +25,23 @@ export default function PersonDetailPage() {
   const [showMemoInput, setShowMemoInput] = useState(false)
   const [memoContent, setMemoContent] = useState('')
   const [memoTime, setMemoTime] = useState('')
+  const [memoDate, setMemoDate] = useState(today())
 
   const daysInMonth = new Date(currentMonth.year, currentMonth.month, 0).getDate()
+
+  const getMonthRange = () => {
+    const startDate = `${currentMonth.year}-${String(currentMonth.month).padStart(2, '0')}-01`
+    const lastDay = new Date(currentMonth.year, currentMonth.month, 0).getDate()
+    const endDate = `${currentMonth.year}-${String(currentMonth.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
+    return { startDate, endDate }
+  }
+
+  const loadMemos = useCallback(async () => {
+    if (!personId) return
+    const { startDate, endDate } = getMonthRange()
+    const data = await getMemosInRangeByPerson(startDate, endDate, personId)
+    setMemos(data)
+  }, [personId, currentMonth])
 
   const goToPrevMonth = () => {
     setCurrentMonth((prev) => {
@@ -84,29 +100,30 @@ export default function PersonDetailPage() {
       const all = await getAllShifts()
       setAllShifts(all)
 
-      const memos = await getMemosInRangeByPerson(startDate, endDate, personId)
-      setMemos(memos)
+      await loadMemos()
       setLoading(false)
     }
     load()
-  }, [personId, currentMonth])
+  }, [personId, currentMonth, loadMemos])
 
   const handleAddMemo = async () => {
     if (!memoContent.trim()) return
     try {
       let remindAt = null
-      if (memoTime) remindAt = new Date(`${today()}T${memoTime}:00`).getTime()
-      await addMemo({ date: today(), content: memoContent.trim(), remindAt, isAlarm: !!memoTime, personId })
+      if (memoTime) remindAt = new Date(`${memoDate}T${memoTime}:00`).getTime()
+      const memo = await addMemo({
+        date: memoDate,
+        content: memoContent.trim(),
+        remindAt,
+        isAlarm: !!memoTime,
+        personId,
+      })
+      scheduleMemoNotification(memo)
       showToast('备注已添加')
       setMemoContent('')
       setMemoTime('')
       setShowMemoInput(false)
-
-      const startDate = `${currentMonth.year}-${String(currentMonth.month).padStart(2, '0')}-01`
-      const lastDay = new Date(currentMonth.year, currentMonth.month, 0).getDate()
-      const endDate = `${currentMonth.year}-${String(currentMonth.month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
-      const memos = await getMemosInRangeByPerson(startDate, endDate, personId)
-      setMemos(memos)
+      await loadMemos()
     } catch (err) {
       showToast('添加失败: ' + err.message, 'error')
     }
@@ -114,8 +131,13 @@ export default function PersonDetailPage() {
 
   const handleDeleteMemo = async (id) => {
     await deleteMemo(id)
-    setMemos((prev) => prev.filter((m) => m.id !== id))
     showToast('备注已删除')
+    loadMemos()
+  }
+
+  const handleMarkDone = async (id) => {
+    await markMemoDone(id)
+    loadMemos()
   }
 
   if (loading) {
@@ -194,7 +216,12 @@ export default function PersonDetailPage() {
             <span className="text-sm">📝</span>
             <h3 className="text-sm font-bold text-slate-600">本月备注</h3>
           </div>
-          <button onClick={() => setShowMemoInput(true)}
+          <button onClick={() => {
+              const now = today()
+              const monthPrefix = `${currentMonth.year}-${String(currentMonth.month).padStart(2, '0')}`
+              setMemoDate(now.startsWith(monthPrefix) ? now : `${monthPrefix}-01`)
+              setShowMemoInput(true)
+            }}
             className="text-xs font-medium text-primary-600 px-3 py-1 rounded-full bg-primary-50 active:bg-primary-100 transition-colors">＋ 添加</button>
         </div>
 
@@ -202,6 +229,12 @@ export default function PersonDetailPage() {
           <div className="mb-3 p-3 rounded-xl bg-gray-50 space-y-2">
             <textarea value={memoContent} onChange={(e) => setMemoContent(e.target.value)}
               placeholder="输入备注内容..." className="input-field" rows={2} autoFocus />
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-400">📅</span>
+              <input type="date" value={memoDate} onChange={(e) => setMemoDate(e.target.value)}
+                className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-amber-200 bg-white" />
+              <span className="text-xs text-slate-400">备注日期</span>
+            </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400">🔔</span>
               <input type="time" value={memoTime} onChange={(e) => setMemoTime(e.target.value)}
@@ -224,9 +257,7 @@ export default function PersonDetailPage() {
             {memos.sort((a, b) => b.createdAt - a.createdAt).map((memo) => (
               <div key={memo.id} className="flex items-start gap-2 p-2.5 rounded-xl bg-amber-50/60">
                 <input type="checkbox" checked={memo.isDone}
-                  onChange={() => markMemoDone(memo.id).then(() => {
-                    setMemos((prev) => prev.filter((m) => m.id !== memo.id))
-                  })}
+                  onChange={() => handleMarkDone(memo.id)}
                   className="mt-0.5 w-3.5 h-3.5 rounded border-gray-300 text-primary-500 focus:ring-primary-400 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm ${memo.isDone ? 'line-through text-slate-400' : 'text-slate-700'}`}>{memo.content}</p>

@@ -1,40 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
 import * as memoStore from '../db/memoStore'
-import { Capacitor } from '@capacitor/core'
-import { LocalNotifications } from '@capacitor/local-notifications'
+import { scheduleMemoNotification } from '../notifications'
 import { getSchedulesByDate } from '../db/scheduleStore'
 import { getPerson, getActivePersons } from '../db/personStore'
 import { getAllCyclePatterns, getShiftIdFromCycle, getPersonCycles } from '../db/cycleStore'
 import { showToast } from './Toast'
 
-const isNative = Capacitor.isNativePlatform()
 const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
-
-function hashMemoId(id) {
-  let hash = 0
-  for (let i = 0; i < id.length; i++) hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0
-  return Math.abs(hash) % 1000000
-}
-
-async function scheduleMemoNotification(memo) {
-  if (!memo.remindAt || !isNative) return
-  try {
-    await LocalNotifications.createChannel({
-      id: 'scheduling-reminders', name: '排班提醒',
-      description: '排班日历提醒和闹钟', importance: 5, sound: 'default', visibility: 1,
-    }).catch(() => {})
-    const remindTime = new Date(memo.remindAt)
-    if (remindTime <= new Date()) return
-    await LocalNotifications.schedule({
-      notifications: [{
-        id: hashMemoId(memo.id), title: '排班提醒', body: memo.content,
-        schedule: { at: remindTime }, sound: memo.isAlarm ? 'default' : undefined,
-        channelId: 'scheduling-reminders', smallIcon: 'ic_stat_notification',
-        extra: { memoId: memo.id },
-      }],
-    })
-  } catch {}
-}
 
 export default function ShiftPicker({
   shifts, currentShiftId, date, personName, personId, isCycleShift,

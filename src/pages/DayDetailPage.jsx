@@ -6,6 +6,7 @@ import ShiftBadge from '../components/ShiftBadge'
 import { formatDate, getWeekdayName, parseDate } from '../utils/date'
 import { showToast } from '../components/Toast'
 import * as memoStore from '../db/memoStore'
+import { scheduleMemoNotification } from '../notifications'
 
 export default function DayDetailPage() {
   const { date } = useParams()
@@ -43,13 +44,14 @@ export default function DayDetailPage() {
       remindAt = new Date(`${date}T${memoTime}:00`).getTime()
     }
 
-    await addMemo({
+    const memo = await addMemo({
       date,
       content: memoContent.trim(),
       remindAt,
       isAlarm: memoIsAlarm,
     })
 
+    scheduleMemoNotification(memo)
     setMemoContent('')
     setMemoTime('')
     setMemoIsAlarm(false)
