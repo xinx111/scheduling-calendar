@@ -10,6 +10,10 @@ const scheduledIds = new Set()
 const shownWebIds = new Set()
 // Web 端只补弹 1 分钟内到期的提醒，避免重启后一次性弹出历史提醒
 const WEB_GRACE_MS = 60 * 1000
+// 通知通道 ID（通道属性首次创建后不可变，改配置需要换新 ID）
+const REMINDER_CHANNEL_ID = 'scheduling-reminders'
+// 测试通知的固定 ID
+const TEST_NOTIFICATION_ID = 999999999
 
 function hashMemoId(id) {
   let hash = 0
@@ -23,11 +27,12 @@ export async function ensureReminderChannel() {
   if (!isNative) return
   try {
     await LocalNotifications.createChannel({
-      id: 'scheduling-reminders',
+      id: REMINDER_CHANNEL_ID,
       name: '排班提醒',
       description: '排班日历的提醒和闹钟',
       importance: 5,
       sound: 'default',
+      vibration: true,
       visibility: 1,
     })
   } catch (e) {
@@ -65,7 +70,7 @@ export async function scheduleMemoNotification(memo) {
           body: memo.content,
           schedule: { at: remindTime },
           sound: memo.isAlarm ? 'default' : undefined,
-          channelId: 'scheduling-reminders',
+          channelId: REMINDER_CHANNEL_ID,
           smallIcon: 'ic_stat_notification',
           extra: { memoId: memo.id },
         },
@@ -133,5 +138,36 @@ export async function checkWebReminders() {
     }
   } catch (e) {
     console.warn('[Reminder] web check error:', e)
+  }
+}
+
+/**
+ * 发送一条 5 秒后的测试通知，用于验证提示音与震动
+ */
+export async function sendTestNotification() {
+  if (!isNative) return false
+  try {
+    const perm = await LocalNotifications.checkPermissions()
+    if (perm.display !== 'granted') {
+      const req = await LocalNotifications.requestPermissions()
+      if (req.display !== 'granted') return false
+    }
+    await ensureReminderChannel()
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: TEST_NOTIFICATION_ID,
+          title: '测试提醒',
+          body: '收到这条通知并有提示音和震动，说明提醒功能正常',
+          schedule: { at: new Date(Date.now() + 5000) },
+          channelId: REMINDER_CHANNEL_ID,
+          smallIcon: 'ic_stat_notification',
+        },
+      ],
+    })
+    return true
+  } catch (e) {
+    console.warn('[Reminder] test error:', e)
+    return false
   }
 }

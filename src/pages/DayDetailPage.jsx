@@ -7,12 +7,12 @@ import { formatDate, getWeekdayName, parseDate } from '../utils/date'
 import { showToast } from '../components/Toast'
 import * as memoStore from '../db/memoStore'
 import { scheduleMemoNotification, rescheduleMemoNotification, cancelMemoNotification } from '../notifications'
+import { getHolidayInfo } from '../utils/holidays.js'
 
 function toTimeInputValue(ts) {
   const d = new Date(ts)
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
 }
-import { getHolidayInfo } from '../utils/holidays.js'
 
 export default function DayDetailPage() {
   const { date } = useParams()

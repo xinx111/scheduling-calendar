@@ -272,7 +272,7 @@ export default function PersonDetailPage() {
             <div className="flex gap-2">
               <button onClick={handleAddMemo} disabled={!memoContent.trim()}
                 className="flex-1 py-2 rounded-xl text-sm font-medium bg-primary-500 text-white disabled:opacity-50 active:scale-[0.98] transition-all">{editingMemoId ? '保存修改' : '保存'}</button>
-              <button onClick={() => setShowMemoInput(false)}
+              <button onClick={() => { setShowMemoInput(false); setEditingMemoId(null) }}
                 className="flex-1 py-2 rounded-xl text-sm font-medium bg-white text-slate-500 border border-gray-200 active:scale-[0.98] transition-all">取消</button>
             </div>
           </div>

@@ -5,7 +5,7 @@ import { LocalNotifications } from '@capacitor/local-notifications'
 import { useReminder } from '../hooks/useReminder'
 import * as memoStore from '../db/memoStore'
 import { showToast } from '../components/Toast'
-import { cancelMemoNotification } from '../notifications'
+import { cancelMemoNotification, sendTestNotification } from '../notifications'
 
 export default function RemindersPage() {
   const navigate = useNavigate()
@@ -52,6 +52,12 @@ export default function RemindersPage() {
     } catch {
       showToast('无法打开系统设置', 'warning')
     }
+  }
+
+  const handleSendTest = async () => {
+    const sent = await sendTestNotification()
+    if (sent) showToast('5 秒后发送测试通知')
+    else showToast('发送失败，请先开启通知权限', 'warning')
   }
 
   const handleMarkDone = async (id) => {
@@ -108,6 +114,11 @@ export default function RemindersPage() {
             开启通知
           </button>
         </div>
+
+        <button onClick={handleSendTest}
+          className="mt-3 w-full py-2 rounded-xl text-xs font-medium text-primary-600 bg-white border border-primary-100 active:bg-primary-50 transition-colors">
+          📣 发送测试通知（5 秒后）
+        </button>
       </div>
 
       {/* 精确闹钟权限 */}
