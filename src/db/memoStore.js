@@ -146,7 +146,7 @@ export async function updateMemo(id, updates) {
  * 重复展开的备忘录 id 形如 "2026-06-07_memo_xxx"，
  * 完成或删除都作用于原始备忘录
  */
-function resolveOriginalMemoId(id) {
+export function resolveOriginalMemoId(id) {
   const marker = id.indexOf('memo_')
   return marker > 0 ? id.slice(marker) : id
 }

@@ -43,8 +43,17 @@ export async function scheduleMemoNotification(memo) {
   const remindTime = new Date(memo.remindAt)
   if (remindTime <= new Date()) return
 
-  scheduledIds.add(memo.id)
   if (!isNative) return
+
+  try {
+    const perm = await LocalNotifications.checkPermissions()
+    if (perm.display !== 'granted') {
+      const req = await LocalNotifications.requestPermissions()
+      if (req.display !== 'granted') return
+    }
+  } catch (e) {
+    console.warn('[Reminder] permission error:', e)
+  }
 
   try {
     await ensureReminderChannel()
@@ -62,9 +71,32 @@ export async function scheduleMemoNotification(memo) {
         },
       ],
     })
+    scheduledIds.add(memo.id)
   } catch (e) {
     console.warn('[Reminder] schedule error:', e)
   }
+}
+
+/**
+ * 取消某条备忘录已挂起的原生通知
+ */
+export async function cancelMemoNotification(id) {
+  if (!id || !isNative) return
+  try {
+    const originalId = memoStore.resolveOriginalMemoId(id)
+    await LocalNotifications.cancel({ notifications: [{ id: hashMemoId(originalId) }] })
+    scheduledIds.delete(originalId)
+  } catch (e) {
+    console.warn('[Reminder] cancel error:', e)
+  }
+}
+
+/**
+ * 修改备忘录后：取消旧通知并按新内容重新挂起
+ */
+export async function rescheduleMemoNotification(oldId, newMemo) {
+  await cancelMemoNotification(oldId)
+  await scheduleMemoNotification(newMemo)
 }
 
 /**

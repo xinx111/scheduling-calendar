@@ -6,7 +6,13 @@ import ShiftBadge from '../components/ShiftBadge'
 import { formatDate, getWeekdayName, parseDate } from '../utils/date'
 import { showToast } from '../components/Toast'
 import * as memoStore from '../db/memoStore'
-import { scheduleMemoNotification } from '../notifications'
+import { scheduleMemoNotification, rescheduleMemoNotification, cancelMemoNotification } from '../notifications'
+
+function toTimeInputValue(ts) {
+  const d = new Date(ts)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+import { getHolidayInfo } from '../utils/holidays.js'
 
 export default function DayDetailPage() {
   const { date } = useParams()
@@ -16,6 +22,7 @@ export default function DayDetailPage() {
   const [dayInfo, setDayInfo] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showAddMemo, setShowAddMemo] = useState(false)
+  const [editingMemoId, setEditingMemoId] = useState(null)
   const [memoContent, setMemoContent] = useState('')
   const [memoTime, setMemoTime] = useState('')
   const [memoIsAlarm, setMemoIsAlarm] = useState(false)
@@ -36,7 +43,23 @@ export default function DayDetailPage() {
     load()
   }, [date, getDayInfo, loadByDate])
 
-  const handleAddMemo = async () => {
+  const handleEditMemo = (memo) => {
+    setEditingMemoId(memo.id)
+    setMemoContent(memo.content)
+    setMemoTime(memo.remindAt ? toTimeInputValue(memo.remindAt) : '')
+    setMemoIsAlarm(!!memo.isAlarm)
+    setShowAddMemo(true)
+  }
+
+  const resetMemoForm = () => {
+    setMemoContent('')
+    setMemoTime('')
+    setMemoIsAlarm(false)
+    setShowAddMemo(false)
+    setEditingMemoId(null)
+  }
+
+  const handleSaveMemo = async () => {
     if (!memoContent.trim()) return
 
     let remindAt = null
@@ -44,29 +67,41 @@ export default function DayDetailPage() {
       remindAt = new Date(`${date}T${memoTime}:00`).getTime()
     }
 
-    const memo = await addMemo({
-      date,
-      content: memoContent.trim(),
-      remindAt,
-      isAlarm: memoIsAlarm,
-    })
-
-    scheduleMemoNotification(memo)
-    setMemoContent('')
-    setMemoTime('')
-    setMemoIsAlarm(false)
-    setShowAddMemo(false)
-    showToast('备注已添加')
-    window.dispatchEvent(new CustomEvent('memo-changed'))
+    try {
+      if (editingMemoId) {
+        const updated = await memoStore.updateMemo(editingMemoId, {
+          content: memoContent.trim(),
+          remindAt,
+          isAlarm: memoIsAlarm,
+        })
+        await rescheduleMemoNotification(editingMemoId, updated)
+        showToast('备注已更新')
+      } else {
+        const memo = await addMemo({
+          date,
+          content: memoContent.trim(),
+          remindAt,
+          isAlarm: memoIsAlarm,
+        })
+        await scheduleMemoNotification(memo)
+        showToast('备注已添加')
+      }
+      resetMemoForm()
+      window.dispatchEvent(new CustomEvent('memo-changed'))
+    } catch (err) {
+      showToast('保存失败: ' + err.message, 'error')
+    }
   }
 
   const handleDeleteMemo = async (id) => {
+    await cancelMemoNotification(id)
     await deleteMemo(id, date)
     showToast('备注已删除')
     window.dispatchEvent(new CustomEvent('memo-changed'))
   }
 
   const handleMarkDone = async (id) => {
+    await cancelMemoNotification(id)
     await markDone(id, date)
     window.dispatchEvent(new CustomEvent('memo-changed'))
   }
@@ -80,6 +115,7 @@ export default function DayDetailPage() {
   }
 
   const dayOfWeek = getWeekdayName(date)
+  const holiday = getHolidayInfo(date)
   const parsedDate = parseDate(date)
   const displayDate = `${parsedDate.getFullYear()}年${parsedDate.getMonth() + 1}月${parsedDate.getDate()}日`
 
@@ -94,7 +130,14 @@ export default function DayDetailPage() {
         <div className="flex items-center gap-2.5">
           <div>
             <h2 className="text-base font-bold text-slate-700">{displayDate}</h2>
-            <span className="text-xs text-slate-400">周{dayOfWeek}</span>
+            <span className="text-xs text-slate-400">
+              周{dayOfWeek}
+              {holiday && (
+                <span className={`font-medium ${holiday.isWorkday ? 'text-amber-600' : 'text-rose-500'}`}>
+                  {' · '}{holiday.isWorkday ? `调休补班（${holiday.name}）` : holiday.name}
+                </span>
+              )}
+            </span>
           </div>
         </div>
       </div>
@@ -186,6 +229,12 @@ export default function DayDetailPage() {
                 )}
               </div>
               <button
+                onClick={() => handleEditMemo(memo)}
+                className="text-slate-300 hover:text-primary-400 text-xs p-1"
+              >
+                ✎
+              </button>
+              <button
                 onClick={() => handleDeleteMemo(memo.id)}
                 className="text-slate-300 hover:text-red-400 text-xs p-1"
               >
@@ -228,14 +277,14 @@ export default function DayDetailPage() {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={handleAddMemo}
+                onClick={handleSaveMemo}
                 disabled={!memoContent.trim()}
                 className="flex-1 btn-primary text-sm py-2 text-center"
               >
-                保存
+                {editingMemoId ? '保存修改' : '保存'}
               </button>
               <button
-                onClick={() => setShowAddMemo(false)}
+                onClick={resetMemoForm}
                 className="btn-secondary text-sm py-2 text-center"
               >
                 取消

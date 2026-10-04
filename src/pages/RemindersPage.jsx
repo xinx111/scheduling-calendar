@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Capacitor } from '@capacitor/core'
+import { LocalNotifications } from '@capacitor/local-notifications'
 import { useReminder } from '../hooks/useReminder'
 import * as memoStore from '../db/memoStore'
 import { showToast } from '../components/Toast'
+import { cancelMemoNotification } from '../notifications'
 
 export default function RemindersPage() {
   const navigate = useNavigate()
   const { upcoming, pendingCount, requestPermission } = useReminder()
   const [reminders, setReminders] = useState([])
   const [loading, setLoading] = useState(true)
+  const [exactAlarm, setExactAlarm] = useState(null)
 
   useEffect(() => {
     let mounted = true
@@ -27,7 +31,31 @@ export default function RemindersPage() {
     }
   }, [pendingCount])
 
+  useEffect(() => {
+    ;(async () => {
+      if (!Capacitor.isNativePlatform()) return
+      if (typeof LocalNotifications.checkExactNotificationSetting !== 'function') return
+      try {
+        const result = await LocalNotifications.checkExactNotificationSetting()
+        setExactAlarm(result.exact)
+      } catch { /* 旧版本插件无此接口 */ }
+    })()
+  }, [])
+
+  const handleOpenExactAlarmSettings = async () => {
+    if (typeof LocalNotifications.openExactAlarmSettings !== 'function') {
+      showToast('请在系统设置中搜索"闹钟权限"', 'warning')
+      return
+    }
+    try {
+      await LocalNotifications.openExactAlarmSettings()
+    } catch {
+      showToast('无法打开系统设置', 'warning')
+    }
+  }
+
   const handleMarkDone = async (id) => {
+    await cancelMemoNotification(id)
     await memoStore.markMemoDone(id)
     setReminders((prev) => prev.filter((r) => r.id !== id))
     showToast('已标记完成')
@@ -35,6 +63,7 @@ export default function RemindersPage() {
   }
 
   const handleDelete = async (id) => {
+    await cancelMemoNotification(id)
     await memoStore.deleteMemo(id)
     setReminders((prev) => prev.filter((r) => r.id !== id))
     showToast('已删除')
@@ -80,6 +109,20 @@ export default function RemindersPage() {
           </button>
         </div>
       </div>
+
+      {/* 精确闹钟权限 */}
+      {exactAlarm === false && (
+        <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/60">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-amber-700">⏰ 提醒可能不准时</p>
+              <p className="text-[11px] text-amber-600 mt-0.5">未授予"精确闹钟"权限，请到系统设置开启</p>
+            </div>
+            <button onClick={handleOpenExactAlarmSettings}
+              className="text-xs font-semibold text-white px-4 py-2 rounded-xl bg-amber-500 active:bg-amber-600 transition-colors shadow-sm">去设置</button>
+          </div>
+        </div>
+      )}
 
       {/* 列表 */}
       {reminders.length === 0 ? (

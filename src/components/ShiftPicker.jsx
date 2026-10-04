@@ -1,12 +1,17 @@
 import { useState, useEffect, useRef } from 'react'
 import * as memoStore from '../db/memoStore'
-import { scheduleMemoNotification } from '../notifications'
+import { scheduleMemoNotification, rescheduleMemoNotification } from '../notifications'
 import { getSchedulesByDate } from '../db/scheduleStore'
 import { getPerson, getActivePersons } from '../db/personStore'
 import { getAllCyclePatterns, getShiftIdFromCycle, getPersonCycles } from '../db/cycleStore'
 import { showToast } from './Toast'
 
 const WEEKDAY_LABELS = ['日', '一', '二', '三', '四', '五', '六']
+
+function toTimeInputValue(ts) {
+  const d = new Date(ts)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
 
 export default function ShiftPicker({
   shifts, currentShiftId, date, personName, personId, isCycleShift,
@@ -58,6 +63,7 @@ export default function ShiftPicker({
 
   const [showMemo, setShowMemo] = useState(false)
   const [savedMemo, setSavedMemo] = useState(null)
+  const [editingMemo, setEditingMemo] = useState(null)
   const [memoContent, setMemoContent] = useState('')
   const [memoTime, setMemoTime] = useState('')
   const [repeatType, setRepeatType] = useState('none')
@@ -77,19 +83,44 @@ export default function ShiftPicker({
 
   const handleConfirm = () => { if (selectedId) onSelect(selectedId); onClose() }
 
+  const handleEditMemo = () => {
+    if (!savedMemo) return
+    setEditingMemo(savedMemo)
+    setMemoContent(savedMemo.content)
+    setMemoTime(savedMemo.remindAt ? toTimeInputValue(savedMemo.remindAt) : '')
+    setRepeatType(savedMemo.repeatRule?.type || 'none')
+    setRepeatWeekdays(savedMemo.repeatRule?.weekdays || [])
+    setSavedMemo(null)
+    setShowMemo(true)
+  }
+
   const handleSaveMemo = async () => {
     if (!memoContent.trim()) return
     let remindAt = null
     if (memoTime) remindAt = new Date(`${date}T${memoTime}:00`).getTime()
     try {
       const repeatRule = getRepeatRule()
-      const memo = await memoStore.addMemo({ date, content: memoContent.trim(), remindAt, isAlarm: !!memoTime, personId, repeatRule })
+      let memo
+      if (editingMemo) {
+        memo = await memoStore.updateMemo(editingMemo.id, {
+          content: memoContent.trim(),
+          remindAt,
+          isAlarm: !!memoTime,
+          repeatRule,
+        })
+        await rescheduleMemoNotification(editingMemo.id, memo)
+      } else {
+        memo = await memoStore.addMemo({ date, content: memoContent.trim(), remindAt, isAlarm: !!memoTime, personId, repeatRule })
+        await scheduleMemoNotification(memo)
+      }
       setSavedMemo(memo)
       setShowMemo(false)
+      setEditingMemo(null)
+      setMemoContent('')
+      setMemoTime('')
       setRepeatType('none')
       setRepeatWeekdays([])
       window.dispatchEvent(new CustomEvent('memo-changed'))
-      await scheduleMemoNotification(memo)
     } catch (err) {
       showToast('保存备注失败: ' + err.message, 'error')
     }
@@ -170,7 +201,7 @@ export default function ShiftPicker({
                   <p className="text-sm text-amber-800 font-medium">{savedMemo.content}</p>
                   {savedMemo.remindAt && <p className="text-xs text-amber-500 mt-0.5">🔔 {new Date(savedMemo.remindAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</p>}
                 </div>
-                <button onClick={() => { setSavedMemo(null); setShowMemo(true) }} className="text-xs text-amber-500 underline flex-shrink-0">修改</button>
+                <button onClick={handleEditMemo} className="text-xs text-amber-500 underline flex-shrink-0">修改</button>
               </div>
             </div>
           )}
@@ -182,7 +213,7 @@ export default function ShiftPicker({
           <div className="absolute bottom-14 left-0 right-0 bg-white rounded-t-3xl shadow-2xl animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-center pt-3 pb-1"><div className="w-10 h-1 rounded-full bg-gray-300/60" /></div>
             <div className="px-5 pb-6 space-y-3">
-              <h3 className="text-base font-bold text-slate-700">📝 添加备注</h3>
+              <h3 className="text-base font-bold text-slate-700">{editingMemo ? '✏️ 编辑备注' : '📝 添加备注'}</h3>
               <p className="text-xs text-slate-400 -mt-2">{date} · {personName}</p>
               <textarea value={memoContent} onChange={(e) => setMemoContent(e.target.value)} placeholder="输入备注内容..." className="input-field" rows={3} autoFocus />
 
@@ -229,7 +260,7 @@ export default function ShiftPicker({
               <div className="flex gap-2">
                 <button onClick={handleSaveMemo} disabled={!memoContent.trim()}
                   className="flex-1 py-3 rounded-xl text-sm font-medium bg-gradient-to-r from-amber-500 to-amber-400 text-white disabled:opacity-50 active:scale-[0.98] transition-all shadow-lg shadow-amber-200/30">保存备注</button>
-                <button onClick={() => setShowMemo(false)} className="flex-1 py-3 rounded-xl text-sm font-medium bg-white text-slate-500 border border-gray-200 active:scale-[0.98] transition-all">取消</button>
+                <button onClick={() => { setShowMemo(false); setEditingMemo(null); setMemoContent(''); setMemoTime(''); setRepeatType('none'); setRepeatWeekdays([]) }} className="flex-1 py-3 rounded-xl text-sm font-medium bg-white text-slate-500 border border-gray-200 active:scale-[0.98] transition-all">取消</button>
               </div>
             </div>
           </div>

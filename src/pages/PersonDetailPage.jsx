@@ -3,11 +3,16 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getPerson } from '../db/personStore'
 import { getPersonSchedulesInRange } from '../db/scheduleStore'
 import { getShift, getAllShifts } from '../db/shiftStore'
-import { getMemosInRangeByPerson, addMemo, deleteMemo, markMemoDone } from '../db/memoStore'
+import { getMemosInRangeByPerson, addMemo, deleteMemo, markMemoDone, updateMemo, resolveOriginalMemoId } from '../db/memoStore'
 import { getPersonCycles, getShiftIdFromCycle } from '../db/cycleStore'
 import { today, getWeekdayName, parseDate, getDaysInMonth } from '../utils/date'
 import { showToast } from '../components/Toast'
-import { scheduleMemoNotification } from '../notifications'
+import { scheduleMemoNotification, rescheduleMemoNotification, cancelMemoNotification } from '../notifications'
+
+function toTimeInputValue(ts) {
+  const d = new Date(ts)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
 
 export default function PersonDetailPage() {
   const { personId } = useParams()
@@ -23,6 +28,7 @@ export default function PersonDetailPage() {
   const [memos, setMemos] = useState([])
   const [allShifts, setAllShifts] = useState([])
   const [showMemoInput, setShowMemoInput] = useState(false)
+  const [editingMemoId, setEditingMemoId] = useState(null)
   const [memoContent, setMemoContent] = useState('')
   const [memoTime, setMemoTime] = useState('')
   const [memoDate, setMemoDate] = useState(today())
@@ -106,36 +112,57 @@ export default function PersonDetailPage() {
     load()
   }, [personId, currentMonth, loadMemos])
 
+  const handleEditMemo = (memo) => {
+    setEditingMemoId(resolveOriginalMemoId(memo.id))
+    setMemoContent(memo.content)
+    setMemoDate(memo.date)
+    setMemoTime(memo.remindAt ? toTimeInputValue(memo.remindAt) : '')
+    setShowMemoInput(true)
+  }
+
   const handleAddMemo = async () => {
     if (!memoContent.trim()) return
     try {
       let remindAt = null
       if (memoTime) remindAt = new Date(`${memoDate}T${memoTime}:00`).getTime()
-      const memo = await addMemo({
-        date: memoDate,
-        content: memoContent.trim(),
-        remindAt,
-        isAlarm: !!memoTime,
-        personId,
-      })
-      scheduleMemoNotification(memo)
-      showToast('备注已添加')
+      if (editingMemoId) {
+        const updated = await updateMemo(editingMemoId, {
+          content: memoContent.trim(),
+          remindAt,
+          isAlarm: !!memoTime,
+        })
+        await rescheduleMemoNotification(editingMemoId, updated)
+        showToast('备注已更新')
+      } else {
+        const memo = await addMemo({
+          date: memoDate,
+          content: memoContent.trim(),
+          remindAt,
+          isAlarm: !!memoTime,
+          personId,
+        })
+        scheduleMemoNotification(memo)
+        showToast('备注已添加')
+      }
+      setEditingMemoId(null)
       setMemoContent('')
       setMemoTime('')
       setShowMemoInput(false)
       await loadMemos()
     } catch (err) {
-      showToast('添加失败: ' + err.message, 'error')
+      showToast('保存失败: ' + err.message, 'error')
     }
   }
 
   const handleDeleteMemo = async (id) => {
+    await cancelMemoNotification(id)
     await deleteMemo(id)
     showToast('备注已删除')
     loadMemos()
   }
 
   const handleMarkDone = async (id) => {
+    await cancelMemoNotification(id)
     await markMemoDone(id)
     loadMemos()
   }
@@ -220,6 +247,7 @@ export default function PersonDetailPage() {
               const now = today()
               const monthPrefix = `${currentMonth.year}-${String(currentMonth.month).padStart(2, '0')}`
               setMemoDate(now.startsWith(monthPrefix) ? now : `${monthPrefix}-01`)
+              setEditingMemoId(null)
               setShowMemoInput(true)
             }}
             className="text-xs font-medium text-primary-600 px-3 py-1 rounded-full bg-primary-50 active:bg-primary-100 transition-colors">＋ 添加</button>
@@ -243,7 +271,7 @@ export default function PersonDetailPage() {
             </div>
             <div className="flex gap-2">
               <button onClick={handleAddMemo} disabled={!memoContent.trim()}
-                className="flex-1 py-2 rounded-xl text-sm font-medium bg-primary-500 text-white disabled:opacity-50 active:scale-[0.98] transition-all">保存</button>
+                className="flex-1 py-2 rounded-xl text-sm font-medium bg-primary-500 text-white disabled:opacity-50 active:scale-[0.98] transition-all">{editingMemoId ? '保存修改' : '保存'}</button>
               <button onClick={() => setShowMemoInput(false)}
                 className="flex-1 py-2 rounded-xl text-sm font-medium bg-white text-slate-500 border border-gray-200 active:scale-[0.98] transition-all">取消</button>
             </div>
@@ -263,6 +291,8 @@ export default function PersonDetailPage() {
                   <p className={`text-sm ${memo.isDone ? 'line-through text-slate-400' : 'text-slate-700'}`}>{memo.content}</p>
                   <p className="text-xs text-slate-400 mt-0.5">📅 {memo.date}{memo.remindAt && ` · ${new Date(memo.remindAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}`}</p>
                 </div>
+                <button onClick={() => handleEditMemo(memo)}
+                  className="text-xs text-slate-300 hover:text-primary-400 p-1 flex-shrink-0">✎</button>
                 <button onClick={() => handleDeleteMemo(memo.id)}
                   className="text-xs text-slate-300 hover:text-rose-400 p-1 flex-shrink-0">✕</button>
               </div>

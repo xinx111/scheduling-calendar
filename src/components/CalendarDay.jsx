@@ -1,3 +1,5 @@
+import { getHolidayInfo } from '../utils/holidays.js'
+
 export default function CalendarDay({
   day,
   shift,
@@ -7,6 +9,7 @@ export default function CalendarDay({
   onClick,
 }) {
   const shiftColor = shift?.color || null
+  const holiday = getHolidayInfo(day.date)
 
   return (
     <button
@@ -35,7 +38,9 @@ export default function CalendarDay({
           flex items-center justify-center font-semibold text-slate-800
           ${day.isToday
             ? 'bg-gradient-to-br from-primary-500 to-primary-700 text-white w-6 h-6 rounded-full shadow-sm shadow-primary-300/50 text-[11px]'
-            : 'text-xs'
+            : holiday && !holiday.isWorkday
+              ? 'text-rose-500 text-xs'
+              : 'text-xs'
           }
         `}
         style={
@@ -64,6 +69,16 @@ export default function CalendarDay({
 
       {/* 底部小标记行 */}
       <div className="flex items-center gap-0.5 mt-0.5 min-h-[14px]">
+        {holiday && !holiday.isWorkday && (
+          <span className="text-[8px] text-rose-400 font-semibold leading-none truncate">
+            {holiday.name}
+          </span>
+        )}
+        {holiday && holiday.isWorkday && (
+          <span className="text-[8px] font-bold text-amber-600 bg-amber-50 border border-amber-200/60 rounded px-0.5 leading-tight">
+            班
+          </span>
+        )}
         {hasMemo && <span className="text-[9px]">📝</span>}
         {isCycle && !hasMemo && !shift && (
           <span className="text-[9px] text-amber-400">↻</span>
